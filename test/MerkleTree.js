@@ -45,8 +45,8 @@ describe("Test", function () {
             const [DEV] = await ethers.getSigners();
             const wallet = DEV.address.toLowerCase();
             const config = mergeBalances(wallet, "100");
-            const Vara = await ethers.getContractFactory("Vara");
-            const vara = await Vara.deploy()
+            const Magma = await ethers.getContractFactory("Magma");
+            const vara = await Magma.deploy()
             const MerkleClaim = await ethers.getContractFactory("MerkleClaim");
 
             const main = await MerkleClaim.deploy(vara.address, config.root);

@@ -3,7 +3,7 @@ pragma solidity 0.8.13;
 
 import "./BaseTest.sol";
 
-contract VaraVotingTest is BaseTest {
+contract MagmaVotingTest is BaseTest {
     VotingEscrow escrow;
     GaugeFactory gaugeFactory;
     BribeFactory bribeFactory;
@@ -18,13 +18,13 @@ contract VaraVotingTest is BaseTest {
         deployOwners();
         deployCoins();
         mintStables();
-        uint256[] memory amountsVara = new uint256[](2);
-        amountsVara[0] = 1e25;
-        amountsVara[1] = 1e25;
-        mintVara(owners, amountsVara);
+        uint256[] memory amountsMagma = new uint256[](2);
+        amountsMagma[0] = 1e25;
+        amountsMagma[1] = 1e25;
+        mintMagma(owners, amountsMagma);
         team = new TestOwner();
         VeArtProxy artProxy = new VeArtProxy();
-        escrow = new VotingEscrow(address(VARA), address(artProxy));
+        escrow = new VotingEscrow(address(MAGMA), address(artProxy));
         factory = new PairFactory();
         router = new Router(address(factory), address(owner));
         gaugeFactory = new GaugeFactory();
@@ -38,9 +38,9 @@ contract VaraVotingTest is BaseTest {
 
         address[] memory tokens = new address[](2);
         tokens[0] = address(FRAX);
-        tokens[1] = address(VARA);
+        tokens[1] = address(MAGMA);
         voter.initialize(tokens, address(owner));
-        VARA.approve(address(escrow), TOKEN_1);
+        MAGMA.approve(address(escrow), TOKEN_1);
         escrow.create_lock(TOKEN_1, 4 * 365 * 86400);
         distributor = new RewardsDistributor(address(escrow));
         escrow.setVoter(address(voter));
@@ -51,13 +51,13 @@ contract VaraVotingTest is BaseTest {
             address(distributor)
         );
         distributor.setDepositor(address(minter));
-        VARA.setMinter(address(minter));
+        MAGMA.setMinter(address(minter));
 
-        VARA.approve(address(router), TOKEN_1);
+        MAGMA.approve(address(router), TOKEN_1);
         FRAX.approve(address(router), TOKEN_1);
         router.addLiquidity(
             address(FRAX),
-            address(VARA),
+            address(MAGMA),
             false,
             TOKEN_1,
             TOKEN_1,
@@ -67,13 +67,13 @@ contract VaraVotingTest is BaseTest {
             block.timestamp
         );
 
-        address pair = router.pairFor(address(FRAX), address(VARA), false);
+        address pair = router.pairFor(address(FRAX), address(MAGMA), false);
 
-        VARA.approve(address(voter), 5 * TOKEN_100K);
+        MAGMA.approve(address(voter), 5 * TOKEN_100K);
         voter.createGauge(pair);
         vm.roll(block.number + 1); // fwd 1 block because escrow.balanceOfNFT() returns 0 in same block
         assertGt(escrow.balanceOfNFT(1), 995063075414519385);
-        assertEq(VARA.balanceOf(address(escrow)), TOKEN_1);
+        assertEq(MAGMA.balanceOf(address(escrow)), TOKEN_1);
 
         address[] memory pools = new address[](1);
         pools[0] = pair;
@@ -89,18 +89,18 @@ contract VaraVotingTest is BaseTest {
         assertEq(escrow.ownerOf(2), address(owner));
         assertEq(escrow.ownerOf(3), address(0));
         vm.roll(block.number + 1);
-        assertEq(VARA.balanceOf(address(minter)), 14 * TOKEN_1M);
+        assertEq(MAGMA.balanceOf(address(minter)), 14 * TOKEN_1M);
 
-        uint256 before = VARA.balanceOf(address(owner));
+        uint256 before = MAGMA.balanceOf(address(owner));
         minter.update_period(); // initial period week 1
-        uint256 after_ = VARA.balanceOf(address(owner));
+        uint256 after_ = MAGMA.balanceOf(address(owner));
         assertEq(minter.weekly(), 15 * TOKEN_1M);
         assertEq(after_ - before, 0);
         vm.warp(block.timestamp + 86400 * 7);
         vm.roll(block.number + 1);
-        before = VARA.balanceOf(address(owner));
+        before = MAGMA.balanceOf(address(owner));
         minter.update_period(); // initial period week 2
-        after_ = VARA.balanceOf(address(owner));
+        after_ = MAGMA.balanceOf(address(owner));
         assertLt(minter.weekly(), 15 * TOKEN_1M);  // <15M for week shift
     }
 

@@ -16,12 +16,12 @@ import "contracts/PairFees.sol";
 import "contracts/RewardsDistributor.sol";
 import "contracts/Router.sol";
 import "contracts/Router2.sol";
-import "contracts/Vara.sol";
-import "contracts/VaraLibrary.sol";
+import "contracts/Magma.sol";
+import "contracts/MagmaLibrary.sol";
 import "contracts/Voter.sol";
 import "contracts/VeArtProxy.sol";
 import "contracts/VotingEscrow.sol";
-import "contracts/VaraGovernor.sol";
+import "contracts/MagmaGovernor.sol";
 import "utils/TestOwner.sol";
 import "utils/TestStakingRewards.sol";
 import "utils/TestToken.sol";
@@ -32,7 +32,7 @@ contract Emission is Test {
     TestWETH WETH;
     MockERC20 DAI;
     uint TOKEN_100 = 100 * 1e18;
-    Vara vara;
+    Magma vara;
     GaugeFactory gaugeFactory;
     BribeFactory bribeFactory;
     PairFactory pairFactory;
@@ -42,13 +42,13 @@ contract Emission is Test {
     RewardsDistributor distributor;
     Voter voter;
     Minter minter;
-    VaraGovernor governor;
+    MagmaGovernor governor;
     Pair pool_eth_dai;
     Pair pool_eth_vara;
     address[] whitelist;
     Gauge gauge_eth_vara;
     function setUp() public {
-        vara = new Vara();
+        vara = new Magma();
         gaugeFactory = new GaugeFactory();
         bribeFactory = new BribeFactory();
         pairFactory = new PairFactory();
@@ -60,7 +60,7 @@ contract Emission is Test {
         distributor = new RewardsDistributor(address(escrow));
         voter = new Voter(address(escrow), address(pairFactory), address(gaugeFactory), address(bribeFactory));
         minter = new Minter(address(voter), address(escrow), address(distributor));
-        governor = new VaraGovernor(escrow);
+        governor = new MagmaGovernor(escrow);
         // ---
         vara.initialMint(address(this));
         vara.setMinter(address(minter));

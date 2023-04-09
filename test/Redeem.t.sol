@@ -6,7 +6,7 @@ contract RedeemTest is BaseTest {
     MerkleClaim claim;
 
     uint256 public constant redeemableUSDC = 10e6 * 1e6;
-    uint256 public constant redeemableVARA = 10e6 * 1e18;
+    uint256 public constant redeemableMAGMA = 10e6 * 1e18;
 
     function setUp() public {
         deployOwners();
@@ -14,10 +14,10 @@ contract RedeemTest is BaseTest {
         mintStables();
 
         claim = new MerkleClaim(
-            address(VARA),
+            address(MAGMA),
             0xd0aa6a4e5b4e13462921d7518eebdb7b297a7877d6cfe078b0c318827392fb55
         ); // root that mints User 100e18 tokens
-        VARA.setMerkleClaim(address(claim));
+        MAGMA.setMerkleClaim(address(claim));
     }
 
     function testClaimAirdrop() public {
@@ -28,7 +28,7 @@ contract RedeemTest is BaseTest {
         proof[0] = 0xceeae64152a2deaf8c661fccd5645458ba20261b16d2f6e090fe908b0ac9ca88;
 
         // Collect balance of tokens before claim
-        uint256 preBalance = VARA.balanceOf(user);
+        uint256 preBalance = MAGMA.balanceOf(user);
 
         // Claim tokens
         vm.startPrank(user);
@@ -40,7 +40,7 @@ contract RedeemTest is BaseTest {
         );
 
         // Collect balance of tokens after claim
-        uint256 postBalance = VARA.balanceOf(user);
+        uint256 postBalance = MAGMA.balanceOf(user);
 
         // Assert balance before + 100 tokens = after balance
         assertEq(postBalance, preBalance + 100e18);

@@ -4,7 +4,7 @@ pragma solidity 0.8.13;
 import "contracts/libraries/Math.sol";
 import "contracts/interfaces/IMinter.sol";
 import "contracts/interfaces/IRewardsDistributor.sol";
-import "contracts/interfaces/IVara.sol";
+import "contracts/interfaces/IMagma.sol";
 import "contracts/interfaces/IVoter.sol";
 import "contracts/interfaces/IVotingEscrow.sol";
 
@@ -15,11 +15,11 @@ contract Minter is IMinter {
     uint internal constant EMISSION = 990;
     uint internal constant TAIL_EMISSION = 2;
     uint internal constant PRECISION = 1000;
-    IVara public immutable _vara;
+    IMagma public immutable _vara;
     IVoter public immutable _voter;
     IVotingEscrow public immutable _ve;
     IRewardsDistributor public immutable _rewards_distributor;
-    uint public weekly = 1_838_000 * 1e18; // represents a starting weekly emission of 1.838M VARA (VARA has 18 decimals)
+    uint public weekly = 1_838_000 * 1e18; // represents a starting weekly emission of 1.838M MAGMA (MAGMA has 18 decimals)
     uint public active_period;
     uint internal constant LOCK = 86400 * 7 * 52 * 4;
 
@@ -39,7 +39,7 @@ contract Minter is IMinter {
         initializer = msg.sender;
         team = msg.sender;
         teamRate = 60; // 60 bps = 0.06%
-        _vara = IVara(IVotingEscrow(__ve).token());
+        _vara = IMagma(IVotingEscrow(__ve).token());
         _voter = IVoter(__voter);
         _ve = IVotingEscrow(__ve);
         _rewards_distributor = IRewardsDistributor(__rewards_distributor);

@@ -6,10 +6,10 @@ import testnet_config from "./constants/testnet-config";
 async function main() {
     const network = await hre.ethers.provider.getNetwork();
     const chainId = network.chainId;
-    const mainnet = chainId === 2222;
+    const mainnet = chainId === 5000;
     console.log(`#Network: ${chainId}`);
     let CONTRACTS = {
-        Vara: "",
+        Magma: "",
         GaugeFactory: "",
         BribeFactory: "",
         PairFactory: "",
@@ -22,14 +22,14 @@ async function main() {
         Voter: "",
         WrappedExternalBribeFactory: "",
         Minter: "",
-        VaraGovernor: "",
+        MagmaGovernor: "",
         MerkleClaim: "",
     };
     const CONFIG = mainnet ? mainnet_config : testnet_config;
 
     // Load
     const [
-        Vara,
+        Magma,
         GaugeFactory,
         BribeFactory,
         PairFactory,
@@ -41,32 +41,32 @@ async function main() {
         RewardsDistributor,
         Voter,
         Minter,
-        VaraGovernor,
+        MagmaGovernor,
         MerkleClaim,
         WrappedExternalBribeFactory
     ] = await Promise.all([
-        hre.ethers.getContractFactory("Vara"),
+        hre.ethers.getContractFactory("Magma"),
         hre.ethers.getContractFactory("GaugeFactory"),
         hre.ethers.getContractFactory("BribeFactory"),
         hre.ethers.getContractFactory("PairFactory"),
         hre.ethers.getContractFactory("Router"),
         hre.ethers.getContractFactory("Router2"),
-        hre.ethers.getContractFactory("VaraLibrary"),
+        hre.ethers.getContractFactory("MagmaLibrary"),
         hre.ethers.getContractFactory("VeArtProxy"),
         hre.ethers.getContractFactory("VotingEscrow"),
         hre.ethers.getContractFactory("RewardsDistributor"),
         hre.ethers.getContractFactory("Voter"),
         hre.ethers.getContractFactory("Minter"),
-        hre.ethers.getContractFactory("VaraGovernor"),
+        hre.ethers.getContractFactory("MagmaGovernor"),
         hre.ethers.getContractFactory("MerkleClaim"),
         hre.ethers.getContractFactory("WrappedExternalBribeFactory"),
     ]);
 
-    const vara = await Vara.deploy();
+    const vara = await Magma.deploy();
     await vara.deployed();
-    CONTRACTS.Vara = vara.address;
+    CONTRACTS.Magma = vara.address;
     try {
-        if( chainId === 2222 || chainId === 2221 ) {
+        if( chainId === 5000 || chainId === 5001 ) {
             await vara.deployTransaction.wait(5);
             await hre.run("verify:verify", {address: vara.address});
         }
@@ -78,7 +78,7 @@ async function main() {
     await gaugeFactory.deployed();
     CONTRACTS.GaugeFactory = gaugeFactory.address;
     try {
-        if( chainId === 2222 || chainId === 2221 ) {
+        if( chainId === 5000 || chainId === 5001 ) {
             await gaugeFactory.deployTransaction.wait(5);
             await hre.run("verify:verify", {address: gaugeFactory.address});
         }
@@ -90,7 +90,7 @@ async function main() {
     await bribeFactory.deployed();
     CONTRACTS.BribeFactory = bribeFactory.address;
     try {
-        if( chainId === 2222 || chainId === 2221 ) {
+        if( chainId === 5000 || chainId === 5001 ) {
             await bribeFactory.deployTransaction.wait(5);
             await hre.run("verify:verify", {address: bribeFactory.address});
         }
@@ -102,7 +102,7 @@ async function main() {
     await pairFactory.deployed();
     CONTRACTS.PairFactory = pairFactory.address;
     try {
-        if( chainId === 2222 || chainId === 2221 ) {
+        if( chainId === 5000 || chainId === 5001 ) {
             await pairFactory.deployTransaction.wait(5);
             await hre.run("verify:verify", {address: pairFactory.address});
         }
@@ -114,7 +114,7 @@ async function main() {
     await router.deployed();
     CONTRACTS.Router = router.address;
     try {
-        if( chainId === 2222 || chainId === 2221 ) {
+        if( chainId === 5000 || chainId === 5001 ) {
             await router.deployTransaction.wait(5);
             await hre.run("verify:verify", {address: router.address, constructorArguments: [pairFactory.address, CONFIG.WETH]});
         }
@@ -126,7 +126,7 @@ async function main() {
     await router2.deployed();
     CONTRACTS.Router2 = router2.address;
     try {
-        if( chainId === 2222 || chainId === 2221 ) {
+        if( chainId === 5000 || chainId === 5001 ) {
             await router2.deployTransaction.wait(5);
             await hre.run("verify:verify", {address: router2.address, constructorArguments: [pairFactory.address, CONFIG.WETH]});
         }
@@ -138,7 +138,7 @@ async function main() {
     await library.deployed();
     CONTRACTS.Library = library.address;
     try {
-        if( chainId === 2222 || chainId === 2221 ) {
+        if( chainId === 5000 || chainId === 5001 ) {
             await library.deployTransaction.wait(5);
             await hre.run("verify:verify", {address: library.address, constructorArguments: [router2.address]});
         }
@@ -150,7 +150,7 @@ async function main() {
     await artProxy.deployed();
     CONTRACTS.VeArtProxy = artProxy.address;
     try {
-        if( chainId === 2222 || chainId === 2221 ) {
+        if( chainId === 5000 || chainId === 5001 ) {
             await artProxy.deployTransaction.wait(5);
             await hre.run("verify:verify", {address: artProxy.address, constructorArguments: []});
         }
@@ -162,7 +162,7 @@ async function main() {
     await escrow.deployed();
     CONTRACTS.VotingEscrow = escrow.address;
     try {
-        if( chainId === 2222 || chainId === 2221 ) {
+        if( chainId === 5000 || chainId === 5001 ) {
             await escrow.deployTransaction.wait(5);
             await hre.run("verify:verify", {address: escrow.address, constructorArguments: [vara.address, artProxy.address]});
         }
@@ -174,7 +174,7 @@ async function main() {
     await distributor.deployed();
     CONTRACTS.RewardsDistributor = distributor.address;
     try {
-        if( chainId === 2222 || chainId === 2221 ) {
+        if( chainId === 5000 || chainId === 5001 ) {
             await distributor.deployTransaction.wait(5);
             await hre.run("verify:verify", {address: distributor.address, constructorArguments: [escrow.address]});
         }
@@ -191,7 +191,7 @@ async function main() {
     await voter.deployed();
     CONTRACTS.Voter = voter.address;
     try {
-        if( chainId === 2222 || chainId === 2221 ) {
+        if( chainId === 5000 || chainId === 5001 ) {
             await voter.deployTransaction.wait(5);
             await hre.run("verify:verify", {address: distributor.address, constructorArguments: [
                 escrow.address,
@@ -207,7 +207,7 @@ async function main() {
     await externalBribeFactory.deployed();
     CONTRACTS.WrappedExternalBribeFactory = externalBribeFactory.address;
     try {
-        if( chainId === 2222 || chainId === 2221 ) {
+        if( chainId === 5000 || chainId === 5001 ) {
             await externalBribeFactory.deployTransaction.wait(5);
             await hre.run("verify:verify", {address: externalBribeFactory.address, constructorArguments: [voter.address]});
         }
@@ -223,7 +223,7 @@ async function main() {
     await minter.deployed();
     CONTRACTS.Minter = minter.address;
     try {
-        if( chainId === 2222 || chainId === 2221 ) {
+        if( chainId === 5000 || chainId === 5001 ) {
             await minter.deployTransaction.wait(5);
             await hre.run("verify:verify", {address: minter.address, constructorArguments: [voter.address,
                     escrow.address,
@@ -233,11 +233,11 @@ async function main() {
         console.log(e.toString());
     }
 
-    const governor = await VaraGovernor.deploy(escrow.address);
+    const governor = await MagmaGovernor.deploy(escrow.address);
     await governor.deployed();
-    CONTRACTS.VaraGovernor = escrow.address;
+    CONTRACTS.MagmaGovernor = escrow.address;
     try {
-        if( chainId === 2222 || chainId === 2221 ) {
+        if( chainId === 5000 || chainId === 5001 ) {
             await governor.deployTransaction.wait(5);
             await hre.run("verify:verify", {address: governor.address, constructorArguments: [escrow.address]});
         }
@@ -250,7 +250,7 @@ async function main() {
     await claim.deployed();
     CONTRACTS.MerkleClaim = claim.address;
     try {
-        if( chainId === 2222 || chainId === 2221 ) {
+        if( chainId === 5000 || chainId === 5001 ) {
             await claim.deployTransaction.wait(5);
             await hre.run("verify:verify", {address: claim.address, constructorArguments: [vara.address, CONFIG.merkleRoot]});
         }
@@ -284,9 +284,6 @@ async function main() {
     tx = await voter.setEmergencyCouncil(CONFIG.teamEOA);
     tx.wait();
 
-    tx = await distributor.setTeam(minter.address);
-    tx.wait();
-
     tx = await distributor.setDepositor(minter.address);
     tx.wait();
 
@@ -307,7 +304,7 @@ async function main() {
         partnerAmts[i] = hre.ethers.utils.parseUnits(CONFIG.partnerAmts[i].toString(), "ether").toString();
         partnerMax = partnerMax.add(hre.ethers.BigNumber.from(partnerAmts[i]));
     }
-    // Initial veVARA distro
+    // Initial veMAGMA distro
     tx = await minter.initialize(
         CONFIG.partnerAddrs,
         CONFIG.partnerAmts,

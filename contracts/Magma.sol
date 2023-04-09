@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.13;
 
-import "contracts/interfaces/IVara.sol";
+import "contracts/interfaces/IMagma.sol";
 
-contract Vara is IVara {
+contract Magma is IMagma {
 
-    string public constant name = "Vara";
-    string public constant symbol = "VARA";
+    string public constant name = "Magma";
+    string public constant symbol = "MAGMA";
     uint8 public constant decimals = 18;
     uint public totalSupply = 0;
 

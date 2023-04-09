@@ -28,7 +28,7 @@ async function loadCfg() {
 
 task("bribeInfo", "stats about bribes").setAction(async () => {
     const cfg = await loadCfg();
-    const IERC20 = await ethers.getContractFactory("contracts/Vara.sol:Vara")
+    const IERC20 = await ethers.getContractFactory("contracts/Magma.sol:Magma")
     const Pair = await ethers.getContractFactory("contracts/Pair.sol:Pair")
     const Main = await ethers.getContractFactory("contracts/Voter.sol:Voter")
     const Gauge = await ethers.getContractFactory("contracts/Gauge.sol:Gauge")
@@ -172,7 +172,7 @@ task("gauges", "Voter.distributeFees").setAction(async () => {
 
 task("showFees", "showFees").setAction(async () => {
     const cfg = await loadCfg();
-    const IERC20 = await ethers.getContractFactory("contracts/Vara.sol:Vara")
+    const IERC20 = await ethers.getContractFactory("contracts/Magma.sol:Magma")
     const Main = await ethers.getContractFactory("contracts/Voter.sol:Voter")
     const Gauge = await ethers.getContractFactory("contracts/Gauge.sol:Gauge")
     const InternalBribe = await ethers.getContractFactory("contracts/InternalBribe.sol:InternalBribe")
@@ -210,9 +210,9 @@ task("batchRewardPerToken", "Gauge.batchRewardPerToken").setAction(async () => {
         const gauge = Gauge.attach(gaugeAddress);
         console.log(`- ${i}: ${poolAddress} = ${gaugeAddress}`);
         const supplyNumCheckpoints = await gauge.supplyNumCheckpoints();
-        const earned1 = await gauge.earned(cfg.Vara, process.env.MULTISIG);
-        let tx = await gauge.batchRewardPerToken(cfg.Vara, supplyNumCheckpoints);
-        const earned2 = await gauge.earned(cfg.Vara, process.env.MULTISIG);
+        const earned1 = await gauge.earned(cfg.Magma, process.env.MULTISIG);
+        let tx = await gauge.batchRewardPerToken(cfg.Magma, supplyNumCheckpoints);
+        const earned2 = await gauge.earned(cfg.Magma, process.env.MULTISIG);
         console.log(`  - maxRuns=${supplyNumCheckpoints}, earned1=${earned1}, earned2=${earned2}`);
         console.log(`  - tx=${tx.hash}`);
     }
@@ -228,7 +228,7 @@ task("earned", "Gauge.earned").setAction(async () => {
         const poolAddress = await main.pools(i);
         const gaugeAddress = await main.gauges(poolAddress);
         const gauge = Gauge.attach(gaugeAddress);
-        const earned = await gauge.earned(cfg.Vara, process.env.MULTISIG);
+        const earned = await gauge.earned(cfg.Magma, process.env.MULTISIG);
         const derivedBalance = await gauge.derivedBalance(process.env.MULTISIG);
         console.log(`- ${i}: gauge: ${gaugeAddress}, earned: ${earned}, balance: ${derivedBalance}`);
     }
@@ -310,17 +310,17 @@ task("getFees", "getFees")
 task("merkleRoot", "MerkleClaim.merkleRoot").setAction(async () => {
     // const cfg = await loadCfg();
     const Main = await ethers.getContractFactory("MerkleClaim")
-    const Vara = await ethers.getContractFactory("Vara")
+    const Magma = await ethers.getContractFactory("Magma")
     const main = Main.attach('0x6C54e61E0295b6f22d8F91CEd5ddE712f2061eE0');
     const merkleRoot = await main.merkleRoot();
-    const varaAddress = await main.VARA();
-    const vara = Vara.attach(varaAddress);
+    const varaAddress = await main.MAGMA();
+    const vara = Magma.attach(varaAddress);
     const merkleClaim = await vara.merkleClaim();
     const minter = await vara.minter();
-    console.log(`VARA: ${varaAddress}`);
-    console.log(`- Vara.merkleRoot: ${merkleRoot}`);
-    console.log(`- Vara.merkleClaim: ${merkleClaim}`);
-    console.log(`- Vara.minter: ${minter}`);
+    console.log(`MAGMA: ${varaAddress}`);
+    console.log(`- Magma.merkleRoot: ${merkleRoot}`);
+    console.log(`- Magma.merkleClaim: ${merkleClaim}`);
+    console.log(`- Magma.minter: ${minter}`);
 });
 
 const config: HardhatUserConfig = {
@@ -329,15 +329,11 @@ const config: HardhatUserConfig = {
             initialBaseFeePerGas: 0,
         },
         mainnet: {
-            url: "https://evm.data.equilibre.kava.io",
+            url: `https://rpc.mantle.xyz`,
             accounts: [process.env.PRIVATE_KEY!]
         },
         testnet: {
-            url: "https://evm.testnet.kava.io",
-            accounts: [process.env.PRIVATE_KEY!]
-        },
-        bsc_testnet: {
-            url: `https://bsc-testnet.public.blastapi.io`,
+            url: `https://rpc.testnet.mantle.xyz`,
             accounts: [process.env.PRIVATE_KEY!]
         },
 
@@ -360,18 +356,18 @@ const config: HardhatUserConfig = {
         customChains: [
             {
                 network: "mainnet",
-                chainId: 2222,
+                chainId: 5000,
                 urls: {
-                    apiURL: "https://explorer.kava.io/api",
-                    browserURL: "https://explorer.kava.io"
+                    apiURL: "https://explorer.mantle.xyz/api",
+                    browserURL: "https://explorer.mantle.xyz"
                 }
             },
             { // npx hardhat verify --list-networks
                 network: "testnet",
-                chainId: 2221,
+                chainId: 5001,
                 urls: {
-                    apiURL: "https://explorer.testnet.kava.io/api",
-                    browserURL: "https://explorer.testnet.kava.io"
+                    apiURL: "https://explorer.testnet.mantle.xyz/api",
+                    browserURL: "https://explorer.testnet.mantle.xyz"
                 }
             }
         ]

@@ -18,13 +18,13 @@ contract MinterTeamEmissions is BaseTest {
         deployOwners();
         deployCoins();
         mintStables();
-        uint256[] memory amountsVara = new uint256[](2);
-        amountsVara[0] = 1e25;
-        amountsVara[1] = 1e25;
-        mintVara(owners, amountsVara);
+        uint256[] memory amountsMagma = new uint256[](2);
+        amountsMagma[0] = 1e25;
+        amountsMagma[1] = 1e25;
+        mintMagma(owners, amountsMagma);
         team = new TestOwner();
         VeArtProxy artProxy = new VeArtProxy();
-        escrow = new VotingEscrow(address(VARA), address(artProxy));
+        escrow = new VotingEscrow(address(MAGMA), address(artProxy));
         factory = new PairFactory();
         router = new Router(address(factory), address(owner));
         gaugeFactory = new GaugeFactory();
@@ -38,9 +38,9 @@ contract MinterTeamEmissions is BaseTest {
 
         address[] memory tokens = new address[](2);
         tokens[0] = address(FRAX);
-        tokens[1] = address(VARA);
+        tokens[1] = address(MAGMA);
         voter.initialize(tokens, address(owner));
-        VARA.approve(address(escrow), TOKEN_1);
+        MAGMA.approve(address(escrow), TOKEN_1);
         escrow.create_lock(TOKEN_1, 4 * 365 * 86400);
         distributor = new RewardsDistributor(address(escrow));
         escrow.setVoter(address(voter));
@@ -51,13 +51,13 @@ contract MinterTeamEmissions is BaseTest {
             address(distributor)
         );
         distributor.setDepositor(address(minter));
-        VARA.setMinter(address(minter));
+        MAGMA.setMinter(address(minter));
 
-        VARA.approve(address(router), TOKEN_1);
+        MAGMA.approve(address(router), TOKEN_1);
         FRAX.approve(address(router), TOKEN_1);
         router.addLiquidity(
             address(FRAX),
-            address(VARA),
+            address(MAGMA),
             false,
             TOKEN_1,
             TOKEN_1,
@@ -67,13 +67,13 @@ contract MinterTeamEmissions is BaseTest {
             block.timestamp
         );
 
-        address pair = router.pairFor(address(FRAX), address(VARA), false);
+        address pair = router.pairFor(address(FRAX), address(MAGMA), false);
 
-        VARA.approve(address(voter), 5 * TOKEN_100K);
+        MAGMA.approve(address(voter), 5 * TOKEN_100K);
         voter.createGauge(pair);
         vm.roll(block.number + 1); // fwd 1 block because escrow.balanceOfNFT() returns 0 in same block
         assertGt(escrow.balanceOfNFT(1), 995063075414519385);
-        assertEq(VARA.balanceOf(address(escrow)), TOKEN_1);
+        assertEq(MAGMA.balanceOf(address(escrow)), TOKEN_1);
 
         address[] memory pools = new address[](1);
         pools[0] = pair;
@@ -89,18 +89,18 @@ contract MinterTeamEmissions is BaseTest {
         assertEq(escrow.ownerOf(2), address(owner));
         assertEq(escrow.ownerOf(3), address(0));
         vm.roll(block.number + 1);
-        assertEq(VARA.balanceOf(address(minter)), 14 * TOKEN_1M);
+        assertEq(MAGMA.balanceOf(address(minter)), 14 * TOKEN_1M);
 
-        uint256 before = VARA.balanceOf(address(owner));
+        uint256 before = MAGMA.balanceOf(address(owner));
         minter.update_period(); // initial period week 1
-        uint256 after_ = VARA.balanceOf(address(owner));
+        uint256 after_ = MAGMA.balanceOf(address(owner));
         assertEq(minter.weekly(), 15 * TOKEN_1M);
         assertEq(after_ - before, 0);
         vm.warp(block.timestamp + 86400 * 7);
         vm.roll(block.number + 1);
-        before = VARA.balanceOf(address(owner));
+        before = MAGMA.balanceOf(address(owner));
         minter.update_period(); // initial period week 2
-        after_ = VARA.balanceOf(address(owner));
+        after_ = MAGMA.balanceOf(address(owner));
         assertLt(minter.weekly(), 15 * TOKEN_1M); // <15M for week shift
     }
 
@@ -127,35 +127,35 @@ contract MinterTeamEmissions is BaseTest {
 
         vm.warp(block.timestamp + 86400 * 7);
         vm.roll(block.number + 1);
-        uint256 beforeTeamSupply = VARA.balanceOf(address(team));
+        uint256 beforeTeamSupply = MAGMA.balanceOf(address(team));
         uint256 weekly = minter.weekly_emission();
         uint256 growth = minter.calculate_growth(weekly);
         minter.update_period(); // new period
-        uint256 afterTeamSupply = VARA.balanceOf(address(team));
-        uint256 newTeamVara = afterTeamSupply - beforeTeamSupply;
-        assertEq(((weekly + growth + newTeamVara) * 30) / 1000, newTeamVara); // check 3% of new emissions to team
+        uint256 afterTeamSupply = MAGMA.balanceOf(address(team));
+        uint256 newTeamMagma = afterTeamSupply - beforeTeamSupply;
+        assertEq(((weekly + growth + newTeamMagma) * 30) / 1000, newTeamMagma); // check 3% of new emissions to team
 
         vm.warp(block.timestamp + 86400 * 7);
         vm.roll(block.number + 1);
-        beforeTeamSupply = VARA.balanceOf(address(team));
+        beforeTeamSupply = MAGMA.balanceOf(address(team));
         weekly = minter.weekly_emission();
         growth = minter.calculate_growth(weekly);
         minter.update_period(); // new period
-        afterTeamSupply = VARA.balanceOf(address(team));
-        newTeamVara = afterTeamSupply - beforeTeamSupply;
-        assertEq(((weekly + growth + newTeamVara) * 30) / 1000, newTeamVara); // check 3% of new emissions to team
+        afterTeamSupply = MAGMA.balanceOf(address(team));
+        newTeamMagma = afterTeamSupply - beforeTeamSupply;
+        assertEq(((weekly + growth + newTeamMagma) * 30) / 1000, newTeamMagma); // check 3% of new emissions to team
 
-        // rate is right even when VARA is sent to Minter contract
+        // rate is right even when MAGMA is sent to Minter contract
         vm.warp(block.timestamp + 86400 * 7);
         vm.roll(block.number + 1);
-        owner2.transfer(address(VARA), address(minter), 1e25);
-        beforeTeamSupply = VARA.balanceOf(address(team));
+        owner2.transfer(address(MAGMA), address(minter), 1e25);
+        beforeTeamSupply = MAGMA.balanceOf(address(team));
         weekly = minter.weekly_emission();
         growth = minter.calculate_growth(weekly);
         minter.update_period(); // new period
-        afterTeamSupply = VARA.balanceOf(address(team));
-        newTeamVara = afterTeamSupply - beforeTeamSupply;
-        assertEq(((weekly + growth + newTeamVara) * 30) / 1000, newTeamVara); // check 3% of new emissions to team
+        afterTeamSupply = MAGMA.balanceOf(address(team));
+        newTeamMagma = afterTeamSupply - beforeTeamSupply;
+        assertEq(((weekly + growth + newTeamMagma) * 30) / 1000, newTeamMagma); // check 3% of new emissions to team
     }
 
     function testChangeTeamEmissionsRate() public {
@@ -175,12 +175,12 @@ contract MinterTeamEmissions is BaseTest {
 
         vm.warp(block.timestamp + 86400 * 7);
         vm.roll(block.number + 1);
-        uint256 beforeTeamSupply = VARA.balanceOf(address(team));
+        uint256 beforeTeamSupply = MAGMA.balanceOf(address(team));
         uint256 weekly = minter.weekly_emission();
         uint256 growth = minter.calculate_growth(weekly);
         minter.update_period(); // new period
-        uint256 afterTeamSupply = VARA.balanceOf(address(team));
-        uint256 newTeamVara = afterTeamSupply - beforeTeamSupply;
-        assertEq(((weekly + growth + newTeamVara) * 50) / 1000, newTeamVara); // check 5% of new emissions to team
+        uint256 afterTeamSupply = MAGMA.balanceOf(address(team));
+        uint256 newTeamMagma = afterTeamSupply - beforeTeamSupply;
+        assertEq(((weekly + growth + newTeamMagma) * 50) / 1000, newTeamMagma); // check 5% of new emissions to team
     }
 }
