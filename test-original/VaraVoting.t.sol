@@ -85,23 +85,23 @@ contract MagmaVotingTest is BaseTest {
         claimants[0] = address(owner);
         uint256[] memory amountsToMint = new uint256[](1);
         amountsToMint[0] = TOKEN_1M;
-        minter.initialize(claimants, amountsToMint, 15 * TOKEN_1M);
+        minter.initialize(claimants, amountsToMint, 1_838_000 * 1e18);
         assertEq(escrow.ownerOf(2), address(owner));
         assertEq(escrow.ownerOf(3), address(0));
         vm.roll(block.number + 1);
-        assertEq(MAGMA.balanceOf(address(minter)), 14 * TOKEN_1M);
+        assertEq(MAGMA.balanceOf(address(minter)), 838_000 * 1e18);
 
         uint256 before = MAGMA.balanceOf(address(owner));
         minter.update_period(); // initial period week 1
         uint256 after_ = MAGMA.balanceOf(address(owner));
-        assertEq(minter.weekly(), 15 * TOKEN_1M);
+        assertEq(minter.weekly(), 1_838_000 * 1e18);
         assertEq(after_ - before, 0);
         vm.warp(block.timestamp + 86400 * 7);
         vm.roll(block.number + 1);
         before = MAGMA.balanceOf(address(owner));
         minter.update_period(); // initial period week 2
         after_ = MAGMA.balanceOf(address(owner));
-        assertLt(minter.weekly(), 15 * TOKEN_1M);  // <15M for week shift
+        assertLt(minter.weekly(), 1_838_000 * 1e18);  // <15M for week shift
     }
 
     // Note: _vote and _reset are not included in one-vote-per-epoch

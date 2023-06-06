@@ -1,6 +1,6 @@
 pragma solidity 0.8.13;
 
-import {WETH as WETHToken} from "solmate/src/tokens/WETH.sol";
+import {WETH as WETHToken} from "solmate/tokens/WETH.sol";
 
 contract TestWETH is WETHToken {
     function mint(address to, uint256 value) public virtual {

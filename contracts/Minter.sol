@@ -15,11 +15,11 @@ contract Minter is IMinter {
     uint internal constant EMISSION = 990;
     uint internal constant TAIL_EMISSION = 2;
     uint internal constant PRECISION = 1000;
-    IMagma public immutable _vara;
+    IMagma public immutable _magma;
     IVoter public immutable _voter;
     IVotingEscrow public immutable _ve;
     IRewardsDistributor public immutable _rewards_distributor;
-    uint public weekly = 1_838_000 * 1e18; // represents a starting weekly emission of 1.838M MAGMA (MAGMA has 18 decimals)
+    uint public weekly = 4_000_000 * 1e18; // represents a starting weekly emission of 2M MAGMA (MAGMA has 18 decimals)
     uint public active_period;
     uint internal constant LOCK = 86400 * 7 * 52 * 4;
 
@@ -39,7 +39,7 @@ contract Minter is IMinter {
         initializer = msg.sender;
         team = msg.sender;
         teamRate = 60; // 60 bps = 0.06%
-        _vara = IMagma(IVotingEscrow(__ve).token());
+        _magma = IMagma(IVotingEscrow(__ve).token());
         _voter = IVoter(__voter);
         _ve = IVotingEscrow(__ve);
         _rewards_distributor = IRewardsDistributor(__rewards_distributor);
@@ -52,8 +52,8 @@ contract Minter is IMinter {
         uint max // sum amounts / max = % ownership of top protocols, so if initial 20m is distributed, and target is 25% protocol ownership, then max - 4 x 20m = 80m
     ) external {
         require(initializer == msg.sender);
-        _vara.mint(address(this), max);
-        _vara.approve(address(_ve), type(uint).max);
+        _magma.mint(address(this), max);
+        _magma.approve(address(_ve), type(uint).max);
         for (uint i = 0; i < claimants.length; i++) {
             _ve.create_lock_for(amounts[i], LOCK, claimants[i]);
         }
@@ -79,7 +79,7 @@ contract Minter is IMinter {
 
     // calculate circulating supply as total token supply - locked supply
     function circulating_supply() public view returns (uint) {
-        return _vara.totalSupply() - _ve.totalSupply();
+        return _magma.totalSupply() - _ve.totalSupply();
     }
 
     // emission calculation is 1% of available supply to mint adjusted by circulating / total supply
@@ -100,11 +100,11 @@ contract Minter is IMinter {
     // calculate inflation and adjust ve balances accordingly
     function calculate_growth(uint _minted) public view returns (uint) {
         uint _veTotal = _ve.totalSupply();
-        uint _varaTotal = _vara.totalSupply();
+        uint _magmaTotal = _magma.totalSupply();
         return
-            (((((_minted * _veTotal) / _varaTotal) * _veTotal) / _varaTotal) *
+            (((((_minted * _veTotal) / _magmaTotal) * _veTotal) / _magmaTotal) *
                 _veTotal) /
-            _varaTotal /
+            _magmaTotal /
             2;
     }
 
@@ -116,21 +116,20 @@ contract Minter is IMinter {
             active_period = _period;
             weekly = weekly_emission();
 
-            uint _growth = calculate_growth(weekly);
-            uint _teamEmissions = (teamRate * (_growth + weekly)) /
+            // disable rebase:
+            uint _teamEmissions = (teamRate * weekly) /
                 (PRECISION - teamRate);
-            uint _required = _growth + weekly + _teamEmissions;
-            uint _balanceOf = _vara.balanceOf(address(this));
+            uint _required = weekly + _teamEmissions;
+            uint _balanceOf = _magma.balanceOf(address(this));
             if (_balanceOf < _required) {
-                _vara.mint(address(this), _required - _balanceOf);
+                _magma.mint(address(this), _required - _balanceOf);
             }
 
-            require(_vara.transfer(team, _teamEmissions));
-            require(_vara.transfer(address(_rewards_distributor), _growth));
+            require(_magma.transfer(team, _teamEmissions));
             _rewards_distributor.checkpoint_token(); // checkpoint token balance that was just minted in rewards distributor
             _rewards_distributor.checkpoint_total_supply(); // checkpoint supply
 
-            _vara.approve(address(_voter), weekly);
+            _magma.approve(address(_voter), weekly);
             _voter.notifyRewardAmount(weekly);
 
             emit Mint(msg.sender, weekly, circulating_supply(), circulating_emission());

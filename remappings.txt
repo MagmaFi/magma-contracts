@@ -1,5 +1,6 @@
 ds-test/=lib/ds-test/src/
 forge-std/=lib/forge-std/src/
-solmate/=lib/solmate/src/
+solmate/=node_modules/solmate/
 @openzeppelin/=node_modules/@openzeppelin/
 utils/=test/utils/
+@uniswap/=node_modules/@uniswap/

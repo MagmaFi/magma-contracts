@@ -9,7 +9,7 @@ async function main() {
     const mainnet = chainId === 5000;
     console.log(`#Network: ${chainId}`);
     let CONTRACTS = {
-        Magma: "",
+        Vara: "",
         GaugeFactory: "",
         BribeFactory: "",
         PairFactory: "",
@@ -22,14 +22,14 @@ async function main() {
         Voter: "",
         WrappedExternalBribeFactory: "",
         Minter: "",
-        MagmaGovernor: "",
+        VaraGovernor: "",
         MerkleClaim: "",
     };
     const CONFIG = mainnet ? mainnet_config : testnet_config;
 
     // Load
     const [
-        Magma,
+        Vara,
         GaugeFactory,
         BribeFactory,
         PairFactory,
@@ -41,30 +41,30 @@ async function main() {
         RewardsDistributor,
         Voter,
         Minter,
-        MagmaGovernor,
+        VaraGovernor,
         MerkleClaim,
         WrappedExternalBribeFactory
     ] = await Promise.all([
-        hre.ethers.getContractFactory("Magma"),
+        hre.ethers.getContractFactory("Vara"),
         hre.ethers.getContractFactory("GaugeFactory"),
         hre.ethers.getContractFactory("BribeFactory"),
         hre.ethers.getContractFactory("PairFactory"),
         hre.ethers.getContractFactory("Router"),
         hre.ethers.getContractFactory("Router2"),
-        hre.ethers.getContractFactory("MagmaLibrary"),
+        hre.ethers.getContractFactory("VaraLibrary"),
         hre.ethers.getContractFactory("VeArtProxy"),
         hre.ethers.getContractFactory("VotingEscrow"),
         hre.ethers.getContractFactory("RewardsDistributor"),
         hre.ethers.getContractFactory("Voter"),
         hre.ethers.getContractFactory("Minter"),
-        hre.ethers.getContractFactory("MagmaGovernor"),
+        hre.ethers.getContractFactory("VaraGovernor"),
         hre.ethers.getContractFactory("MerkleClaim"),
         hre.ethers.getContractFactory("WrappedExternalBribeFactory"),
     ]);
 
-    const vara = await Magma.deploy();
+    const vara = await Vara.deploy();
     await vara.deployed();
-    CONTRACTS.Magma = vara.address;
+    CONTRACTS.Vara = vara.address;
     try {
         if( chainId === 5000 || chainId === 5001 ) {
             await vara.deployTransaction.wait(5);
@@ -233,9 +233,9 @@ async function main() {
         console.log(e.toString());
     }
 
-    const governor = await MagmaGovernor.deploy(escrow.address);
+    const governor = await VaraGovernor.deploy(escrow.address);
     await governor.deployed();
-    CONTRACTS.MagmaGovernor = escrow.address;
+    CONTRACTS.VaraGovernor = escrow.address;
     try {
         if( chainId === 5000 || chainId === 5001 ) {
             await governor.deployTransaction.wait(5);
@@ -284,6 +284,9 @@ async function main() {
     tx = await voter.setEmergencyCouncil(CONFIG.teamEOA);
     tx.wait();
 
+    tx = await distributor.setTeam(minter.address);
+    tx.wait();
+
     tx = await distributor.setDepositor(minter.address);
     tx.wait();
 
@@ -304,7 +307,7 @@ async function main() {
         partnerAmts[i] = hre.ethers.utils.parseUnits(CONFIG.partnerAmts[i].toString(), "ether").toString();
         partnerMax = partnerMax.add(hre.ethers.BigNumber.from(partnerAmts[i]));
     }
-    // Initial veMAGMA distro
+    // Initial veVARA distro
     tx = await minter.initialize(
         CONFIG.partnerAddrs,
         CONFIG.partnerAmts,

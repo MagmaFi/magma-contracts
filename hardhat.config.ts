@@ -313,11 +313,11 @@ task("merkleRoot", "MerkleClaim.merkleRoot").setAction(async () => {
     const Magma = await ethers.getContractFactory("Magma")
     const main = Main.attach('0x6C54e61E0295b6f22d8F91CEd5ddE712f2061eE0');
     const merkleRoot = await main.merkleRoot();
-    const varaAddress = await main.MAGMA();
-    const vara = Magma.attach(varaAddress);
-    const merkleClaim = await vara.merkleClaim();
-    const minter = await vara.minter();
-    console.log(`MAGMA: ${varaAddress}`);
+    const magmaAddress = await main.MAGMA();
+    const magma = Magma.attach(magmaAddress);
+    const merkleClaim = await magma.merkleClaim();
+    const minter = await magma.minter();
+    console.log(`MAGMA: ${magmaAddress}`);
     console.log(`- Magma.merkleRoot: ${merkleRoot}`);
     console.log(`- Magma.merkleClaim: ${merkleClaim}`);
     console.log(`- Magma.minter: ${minter}`);

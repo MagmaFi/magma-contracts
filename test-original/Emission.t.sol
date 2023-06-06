@@ -32,7 +32,7 @@ contract Emission is Test {
     TestWETH WETH;
     MockERC20 DAI;
     uint TOKEN_100 = 100 * 1e18;
-    Magma vara;
+    Magma magma;
     GaugeFactory gaugeFactory;
     BribeFactory bribeFactory;
     PairFactory pairFactory;
@@ -44,11 +44,11 @@ contract Emission is Test {
     Minter minter;
     MagmaGovernor governor;
     Pair pool_eth_dai;
-    Pair pool_eth_vara;
+    Pair pool_eth_magma;
     address[] whitelist;
-    Gauge gauge_eth_vara;
+    Gauge gauge_eth_magma;
     function setUp() public {
-        vara = new Magma();
+        magma = new Magma();
         gaugeFactory = new GaugeFactory();
         bribeFactory = new BribeFactory();
         pairFactory = new PairFactory();
@@ -56,14 +56,14 @@ contract Emission is Test {
         DAI = new MockERC20("DAI", "DAI", 18);
         router = new Router2(address(pairFactory), address(WETH));
         artProxy = new VeArtProxy();
-        escrow = new VotingEscrow(address(vara), address(artProxy));
+        escrow = new VotingEscrow(address(magma), address(artProxy));
         distributor = new RewardsDistributor(address(escrow));
         voter = new Voter(address(escrow), address(pairFactory), address(gaugeFactory), address(bribeFactory));
         minter = new Minter(address(voter), address(escrow), address(distributor));
         governor = new MagmaGovernor(escrow);
         // ---
-        vara.initialMint(address(this));
-        vara.setMinter(address(minter));
+        magma.initialMint(address(this));
+        magma.setMinter(address(minter));
         escrow.setVoter(address(voter));
         escrow.setTeam(address(this));
         voter.setGovernor(address(this));
@@ -72,7 +72,7 @@ contract Emission is Test {
         governor.setTeam(address(this));
 
 
-        whitelist.push(address(vara));
+        whitelist.push(address(magma));
         whitelist.push(address(DAI));
         voter.initialize(whitelist, address(minter));
         //minter.initialize([], [], 0);
@@ -81,30 +81,30 @@ contract Emission is Test {
         // ---
         DAI.mint(address(this), TOKEN_100);
         DAI.approve(address(router), TOKEN_100);
-        vara.approve(address(router), TOKEN_100);
+        magma.approve(address(router), TOKEN_100);
 
         router.addLiquidityETH{value : TOKEN_100}(address(DAI), false, TOKEN_100, 0, 0, address(this), block.timestamp);
-        router.addLiquidityETH{value : TOKEN_100}(address(vara), false, TOKEN_100, 0, 0, address(this), block.timestamp);
+        router.addLiquidityETH{value : TOKEN_100}(address(magma), false, TOKEN_100, 0, 0, address(this), block.timestamp);
 
         pool_eth_dai = Pair( pairFactory.getPair(address(WETH),address(DAI), false) );
-        pool_eth_vara = Pair( pairFactory.getPair(address(WETH),address(vara), false) );
+        pool_eth_magma = Pair( pairFactory.getPair(address(WETH),address(magma), false) );
     }
     function getEpoch() public returns(uint){
-        InternalBribe bribe = InternalBribe(gauge_eth_vara.internal_bribe());
+        InternalBribe bribe = InternalBribe(gauge_eth_magma.internal_bribe());
         return bribe.getEpochStart(block.timestamp);
     }
     function testExec() public {
         vm.warp(block.timestamp + 86400 * 7);
         vm.roll(block.number + 1);
 
-        gauge_eth_vara = Gauge(voter.createGauge(address(pool_eth_vara)));
+        gauge_eth_magma = Gauge(voter.createGauge(address(pool_eth_magma)));
         vm.roll(block.number + 1);
         uint duration = 4 * 365 * 86400;
-        vara.approve(address(escrow), vara.balanceOf(address(this)));
-        uint id = escrow.create_lock(vara.balanceOf(address(this)), duration);
+        magma.approve(address(escrow), magma.balanceOf(address(this)));
+        uint id = escrow.create_lock(magma.balanceOf(address(this)), duration);
 
         address[] memory pools = new address[](1);
-        pools[0] = address(pool_eth_vara);
+        pools[0] = address(pool_eth_magma);
         uint256[] memory weights = new uint256[](1);
         weights[0] = 5000;
         console.log('epoch 0', getEpoch());
@@ -122,14 +122,14 @@ contract Emission is Test {
         uint[] memory emptyAmounts = new uint[](1);
         emptyAmounts[0] = 1e18;
         minter.initialize(emptyAddresses, emptyAmounts, 1e18);
-        console.log('a', vara.balanceOf(address(this))/1e18);
+        console.log('a', magma.balanceOf(address(this))/1e18);
         voter.distro();
-        console.log('b', vara.balanceOf(address(this))/1e18);
+        console.log('b', magma.balanceOf(address(this))/1e18);
         vm.warp(block.timestamp + (86400 * 7)+ 1 );
         vm.roll(block.number + 1);
         console.log('epoch 2', getEpoch());
         voter.distro();
-        console.log('c', vara.balanceOf(address(this))/1e18);
+        console.log('c', magma.balanceOf(address(this))/1e18);
     }
 
 }

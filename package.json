@@ -1,5 +1,5 @@
 {
-  "name": "vara",
+  "name": "magma",
   "version": "1.0.0",
   "description": "Base layer AMM on Optimism",
   "directories": {
@@ -30,7 +30,9 @@
   "dependencies": {
     "@openzeppelin/contracts": "^4.8.1",
     "@openzeppelin/contracts-upgradeable": "^4.8.0",
-    "@openzeppelin/merkle-tree": "^1.0.2"
+    "@openzeppelin/merkle-tree": "^1.0.2",
+    "@uniswap/lib": "^4.0.1-alpha",
+    "solmate": "^6.7.0"
   },
   "scripts": {
     "test0": "forge test -vv",

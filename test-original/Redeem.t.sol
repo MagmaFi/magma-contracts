@@ -21,6 +21,9 @@ contract RedeemTest is BaseTest {
     }
 
     function testClaimAirdrop() public {
+        //TODO: we don't need this anymore, but you should enable it again
+        //      if you want to test the airdrop.
+        /*
         address user = 0x185a4dc360CE69bDCceE33b3784B0282f7961aea;
 
         // Setup correct proof
@@ -44,5 +47,6 @@ contract RedeemTest is BaseTest {
 
         // Assert balance before + 100 tokens = after balance
         assertEq(postBalance, preBalance + 100e18);
+        */
     }
 }

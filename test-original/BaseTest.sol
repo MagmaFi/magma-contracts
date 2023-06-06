@@ -2,7 +2,7 @@ pragma solidity 0.8.13;
 
 import "forge-std/Test.sol";
 import "forge-std/console2.sol";
-import "solmate/src/test/utils/mocks/MockERC20.sol";
+import "solmate/test/utils/mocks/MockERC20.sol";
 import "contracts/factories/BribeFactory.sol";
 import "contracts/factories/GaugeFactory.sol";
 import "contracts/factories/PairFactory.sol";

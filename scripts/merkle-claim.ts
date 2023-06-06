@@ -3,10 +3,10 @@ import testnet_config from "./constants/testnet-config";
 
 async function main(){
     const [
-        Magma,
+        Vara,
         MerkleClaim
     ] = await Promise.all([
-        hre.ethers.getContractFactory("Magma"),
+        hre.ethers.getContractFactory("Vara"),
         hre.ethers.getContractFactory("MerkleClaim")
     ]);
     const network = await hre.ethers.provider.getNetwork();
@@ -14,7 +14,7 @@ async function main(){
     const mainnet = chainId === 2222;
     console.log(`#Network: ${chainId}`);
     const CONFIG = mainnet ? mainnet_config : testnet_config;
-    const vara = await Magma.deploy();
+    const vara = await Vara.deploy();
     await vara.deployed();
     const claim = await MerkleClaim.deploy(vara.address, CONFIG.merkleRoot);
     await claim.deployed();

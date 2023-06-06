@@ -46,11 +46,11 @@ describe("Test", function () {
             const wallet = DEV.address.toLowerCase();
             const config = mergeBalances(wallet, "100");
             const Magma = await ethers.getContractFactory("Magma");
-            const vara = await Magma.deploy()
+            const magma = await Magma.deploy()
             const MerkleClaim = await ethers.getContractFactory("MerkleClaim");
 
-            const main = await MerkleClaim.deploy(vara.address, config.root);
-            await vara.setMerkleClaim(main.address);
+            const main = await MerkleClaim.deploy(magma.address, config.root);
+            await magma.setMerkleClaim(main.address);
 
             const MerkleTreeData = merkle.StandardMerkleTree.load(config.tree);
 

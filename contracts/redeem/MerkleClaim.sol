@@ -25,10 +25,10 @@ contract MerkleClaim {
     /// ============ Constructor ============
 
     /// @notice Creates a new MerkleClaim contract
-    /// @param _vara address
+    /// @param _magma address
     /// @param _merkleRoot of claimees
-    constructor(address _vara, bytes32 _merkleRoot) {
-        MAGMA = IMagma(_vara);
+    constructor(address _magma, bytes32 _merkleRoot) {
+        MAGMA = IMagma(_magma);
         merkleRoot = _merkleRoot;
     }
 

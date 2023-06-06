@@ -1,6 +1,6 @@
 pragma solidity 0.8.13;
 
-import "solmate/src/test/utils/mocks/MockERC20.sol";
+import "solmate/test/utils/mocks/MockERC20.sol";
 import "contracts/Gauge.sol";
 import "contracts/Minter.sol";
 import "contracts/Pair.sol";

@@ -34,7 +34,7 @@ contract veSplitterTest is Test {
     TestWETH WETH;
     MockERC20 DAI;
     uint TOKEN_100 = 100 * 1e18;
-    Magma vara;
+    Magma magma;
     GaugeFactory gaugeFactory;
     BribeFactory bribeFactory;
     PairFactory pairFactory;
@@ -46,14 +46,14 @@ contract veSplitterTest is Test {
     Minter minter;
     MagmaGovernor governor;
     Pair pool_eth_dai;
-    Pair pool_eth_vara;
+    Pair pool_eth_magma;
     address[] whitelist;
-    Gauge gauge_eth_vara;
+    Gauge gauge_eth_magma;
 
     veSplitter main;
     uint tokenId;
     function setUp() public {
-        vara = new Magma();
+        magma = new Magma();
         gaugeFactory = new GaugeFactory();
         bribeFactory = new BribeFactory();
         pairFactory = new PairFactory();
@@ -61,14 +61,14 @@ contract veSplitterTest is Test {
         DAI = new MockERC20("DAI", "DAI", 18);
         router = new Router2(address(pairFactory), address(WETH));
         artProxy = new VeArtProxy();
-        escrow = new VotingEscrow(address(vara), address(artProxy));
+        escrow = new VotingEscrow(address(magma), address(artProxy));
         distributor = new RewardsDistributor(address(escrow));
         voter = new Voter(address(escrow), address(pairFactory), address(gaugeFactory), address(bribeFactory));
         minter = new Minter(address(voter), address(escrow), address(distributor));
         governor = new MagmaGovernor(escrow);
         // ---
-        vara.initialMint(address(this));
-        vara.setMinter(address(minter));
+        magma.initialMint(address(this));
+        magma.setMinter(address(minter));
         escrow.setVoter(address(voter));
         escrow.setTeam(address(this));
         voter.setGovernor(address(this));
@@ -77,7 +77,7 @@ contract veSplitterTest is Test {
         governor.setTeam(address(this));
 
 
-        whitelist.push(address(vara));
+        whitelist.push(address(magma));
         whitelist.push(address(DAI));
         voter.initialize(whitelist, address(minter));
         //minter.initialize([], [], 0);
@@ -86,13 +86,13 @@ contract veSplitterTest is Test {
         // ---
         DAI.mint(address(this), TOKEN_100);
         DAI.approve(address(router), TOKEN_100);
-        vara.approve(address(router), TOKEN_100);
+        magma.approve(address(router), TOKEN_100);
 
         router.addLiquidityETH{value : TOKEN_100}(address(DAI), false, TOKEN_100, 0, 0, address(this), block.timestamp);
-        router.addLiquidityETH{value : TOKEN_100}(address(vara), false, TOKEN_100, 0, 0, address(this), block.timestamp);
+        router.addLiquidityETH{value : TOKEN_100}(address(magma), false, TOKEN_100, 0, 0, address(this), block.timestamp);
 
         pool_eth_dai = Pair(pairFactory.getPair(address(WETH), address(DAI), false));
-        pool_eth_vara = Pair(pairFactory.getPair(address(WETH), address(vara), false));
+        pool_eth_magma = Pair(pairFactory.getPair(address(WETH), address(magma), false));
 
         address[] memory emptyAddresses = new address[](1);
         emptyAddresses[0] = address(this);
@@ -108,14 +108,14 @@ contract veSplitterTest is Test {
         vm.warp(block.timestamp + 86400 * 7);
         vm.roll(block.number + 1);
 
-        gauge_eth_vara = Gauge(voter.createGauge(address(pool_eth_vara)));
+        gauge_eth_magma = Gauge(voter.createGauge(address(pool_eth_magma)));
         vm.roll(block.number + 1);
         uint duration = 4 * 365 * 86400;
-        vara.approve(address(escrow), vara.balanceOf(address(this)));
-        tokenId = escrow.create_lock(vara.balanceOf(address(this)), duration);
+        magma.approve(address(escrow), magma.balanceOf(address(this)));
+        tokenId = escrow.create_lock(magma.balanceOf(address(this)), duration);
 
         address[] memory pools = new address[](1);
-        pools[0] = address(pool_eth_vara);
+        pools[0] = address(pool_eth_magma);
         uint256[] memory locks = new uint256[](1);
         locks[0] = 5000;
 
@@ -138,8 +138,8 @@ contract veSplitterTest is Test {
     function testExec() public {
         runEpochs();
 
-        pool_eth_vara.approve(address(gauge_eth_vara), pool_eth_vara.balanceOf(address(this)));
-        gauge_eth_vara.depositAll(tokenId);
+        pool_eth_magma.approve(address(gauge_eth_magma), pool_eth_magma.balanceOf(address(this)));
+        gauge_eth_magma.depositAll(tokenId);
 
         uint[] memory amounts = new uint[](2);
         amounts[0] = 1 ether;
@@ -154,7 +154,7 @@ contract veSplitterTest is Test {
         main.split(amounts, locks, tokenId);
 
         voter.reset(tokenId);
-        gauge_eth_vara.withdrawAll();
+        gauge_eth_magma.withdrawAll();
 
         vm.expectRevert(abi.encodePacked(veSplitter.NftNotApproved.selector));
         main.split(amounts, locks, tokenId);
@@ -176,12 +176,12 @@ contract veSplitterTest is Test {
         vm.warp(block.timestamp + duration + 1);
         vm.roll(block.number + 1);
 
-        uint balanceOfTokenBefore = vara.balanceOf(address(this));
+        uint balanceOfTokenBefore = magma.balanceOf(address(this));
         main.split(amounts, locks, tokenId);
 
         uint balanceOfNft = escrow.balanceOf(address(this));
         assert( balanceOfNft == 3 );
-        uint balanceOfTokenAfter = vara.balanceOf(address(this));
+        uint balanceOfTokenAfter = magma.balanceOf(address(this));
         uint tokensReceived = balanceOfTokenAfter - balanceOfTokenBefore;
         assert( tokensReceived == 39999897000000000000000000);
 
