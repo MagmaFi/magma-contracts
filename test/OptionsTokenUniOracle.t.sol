@@ -28,7 +28,10 @@ contract OptionsTokenUniOracle is BaseTest {
         token = new Magma();
         pairAddress = factory.createPair(address(token), address(usdc), false);
         pair = Pair(pairAddress);
-        oracle = new UniswapV2Oracle(pairAddress);
+        oracle = new UniswapV2Oracle(pairAddress, address(token));
+
+        // prevent timestamp calculation problem in the oracle:
+        vm.warp(1686178415);
 
     }
 
@@ -45,30 +48,20 @@ contract OptionsTokenUniOracle is BaseTest {
         Router.route[] memory routes = new Router.route[](1);
         routes[0] = Router.route(address(usdc), address(token), false);
 
-        uint buyAmount = 100e6;
-        usdc.mint(buyAmount);
-        usdc.approve(address(router2), buyAmount);
-        uint swapAmount = 1e6;
-        router2.swapExactTokensForTokens(swapAmount, 0, routes, address(this), block.timestamp);
-        vm.warp(block.timestamp+3600);
-        router2.swapExactTokensForTokens(swapAmount, 0, routes, address(this), block.timestamp);
-        vm.warp(block.timestamp+3600);
-        router2.swapExactTokensForTokens(swapAmount, 0, routes, address(this), block.timestamp);
-        vm.warp(block.timestamp+3600);
-        router2.swapExactTokensForTokens(swapAmount, 0, routes, address(this), block.timestamp);
-        vm.warp(block.timestamp+3600);
-        router2.swapExactTokensForTokens(swapAmount, 0, routes, address(this), block.timestamp);
-        vm.warp(block.timestamp+3600);
-        router2.swapExactTokensForTokens(swapAmount, 0, routes, address(this), block.timestamp);
-        vm.warp(block.timestamp+3600);
-        router2.swapExactTokensForTokens(swapAmount, 0, routes, address(this), block.timestamp);
-        vm.warp(block.timestamp+3600);
-        router2.swapExactTokensForTokens(swapAmount, 0, routes, address(this), block.timestamp);
-        vm.warp(block.timestamp+3600);
+        uint tokenDecimals = usdc.decimals();
 
-        uint256[] memory prices = oracle.price(address(usdc), 100e6, block.timestamp-12000, 30);
-        uint priceInWei = prices[0];
-        console.log("priceInWei", priceInWei);
+        uint swapTimes = 100;
+        uint buyAmount = 10;
+        for(uint i = 0; i < swapTimes; i++){
+            uint buyAmountInWei = 10 ** tokenDecimals * buyAmount;
+            usdc.mint(buyAmountInWei);
+            usdc.approve(address(router2), buyAmountInWei);
+            router2.swapExactTokensForTokens(buyAmountInWei, 0, routes, address(this), block.timestamp);
+            uint ts = block.timestamp + 10 minutes;
+            vm.warp(ts);
+            uint price = oracle.getPrice();
+            console.log("%s) price %s", i, price);
+        }
 
     }
 }

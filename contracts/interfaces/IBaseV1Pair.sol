@@ -17,6 +17,7 @@ interface IBaseV1Pair {
     function getAmountOut(uint, address) external view returns (uint);
     // additional views for oracle:
     function observations(uint256 index) external view returns (Observation calldata);
+    function lastObservation() external view returns (Observation memory);
     function observationLength() external view returns (uint256);
     function token0() external view returns (address);
     function token1() external view returns (address);
