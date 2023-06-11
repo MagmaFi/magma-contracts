@@ -2,7 +2,7 @@ import cfg from "./constants/mainnet-config";
 import allContracts from "../contracts";
 
 interface IContract {
-    Vara: string;
+    Magma: string;
     Voter: string;
     VotingEscrow: string;
 }
@@ -28,10 +28,10 @@ async function main() {
     await oracle.deployed();
     console.log('EquilibreTvlOracle', oracle.address);
 
-    const veApi = await Equilibre_VE_Api.deploy(oracle.address, cfg.VARA_KAVA,
-        contracts.Vara, contracts.Voter, contracts.VotingEscrow);
-    const veApiVerifyArgs = [oracle.address, cfg.VARA_KAVA,
-        contracts.Vara, contracts.Voter, contracts.VotingEscrow];
+    const veApi = await Equilibre_VE_Api.deploy(oracle.address, cfg.MAGMA_KAVA,
+        contracts.Magma, contracts.Voter, contracts.VotingEscrow);
+    const veApiVerifyArgs = [oracle.address, cfg.MAGMA_KAVA,
+        contracts.Magma, contracts.Voter, contracts.VotingEscrow];
     await veApi.deployed();
     console.log('Equilibre_VE_Api', veApi.address);
 

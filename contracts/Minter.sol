@@ -42,7 +42,7 @@ contract Minter is IMinter {
         team = msg.sender;
         _ve = IVotingEscrow(__ve);
         _magma = IMagma(_ve.token());
-        _omagma = IMagma(_ve.otoken());
+        _omagma = IoMagma(_ve.otoken());
         _voter = IVoter(__voter);
         _rewards_distributor = IRewardsDistributor(__rewards_distributor);
         active_period = ((block.timestamp + (2 * WEEK)) / WEEK) * WEEK;

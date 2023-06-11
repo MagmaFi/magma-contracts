@@ -41,11 +41,10 @@ contract Magma is IMagma {
         merkleClaim = _merkleClaim;
     }
 
-    // Initial mint: total 40M
-    function initialMint(address _recipient) external {
+    function initialMint(address _recipient, uint amount) external {
         require(msg.sender == minter && !initialMinted);
         initialMinted = true;
-        _mint(_recipient, 40_000_000 * 1e18);
+        _mint(_recipient, amount);
     }
 
     function approve(address _spender, uint _value) external returns (bool) {
