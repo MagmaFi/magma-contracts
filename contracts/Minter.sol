@@ -28,9 +28,9 @@ contract Minter is IMinter {
     address internal initializer;
     address public team;
     address public pendingTeam;
-    uint public teamRate = 60; // 60 bps = 0.06%
-    uint public constant MAX_TEAM_RATE = 60; // 60 bps = 0.06%
-
+    uint public teamRate = 500; // 500 bps = 0.5%
+    uint public constant MAX_TEAM_RATE = 600; // 60 bps = 0.5%
+    bool public teamEmissionStatus = false; // we start disabled
     event Mint(address indexed sender, uint weekly, uint circulating_supply, uint circulating_emission);
 
     constructor(
@@ -77,9 +77,15 @@ contract Minter is IMinter {
         teamRate = _teamRate;
     }
 
+    function setTeamEmissionStatus(bool _teamEmissionStatus) external {
+        require(msg.sender == team, "not team");
+        teamEmissionStatus = _teamEmissionStatus;
+    }
+
     // calculate circulating supply as total token supply - locked supply
     function circulating_supply() public view returns (uint) {
-        return _magma.totalSupply() - _ve.totalSupply();
+        // we compute both the total supply of MAGMA and oMAGMA as oMagma can be redeemed for MAGMA:
+        return (_magma.totalSupply() + _omagma.totalSupply() ) - _ve.totalSupply();
     }
 
     // emission calculation is 1% of available supply to mint adjusted by circulating / total supply
@@ -94,7 +100,6 @@ contract Minter is IMinter {
 
     // calculates tail end (infinity) emissions as 0.2% of total supply
     function circulating_emission() public view returns (uint) {
-        // TODO: test this, as it return magma supply, not oMagma supply
         return (circulating_supply() * TAIL_EMISSION) / PRECISION;
     }
 
@@ -106,14 +111,18 @@ contract Minter is IMinter {
             active_period = _period;
             weekly = weekly_emission();
 
-            uint _teamEmissions = (teamRate * weekly) / (PRECISION - teamRate);
-            uint _required = weekly + _teamEmissions;
-            uint _balanceOf = _omagma.balanceOf(address(this));
-            if (_balanceOf < _required) {
-                _omagma.mint(address(this), _required - _balanceOf);
+            if( teamEmissionStatus ){
+                uint _teamEmissions = (teamRate * weekly) / (PRECISION - teamRate);
+                // team emissions is in Magma:
+                _magma.mint(team, _teamEmissions);
+                require(_magma.transfer(team, _teamEmissions));
             }
 
-            require(_omagma.transfer(team, _teamEmissions));
+            uint _balanceOf = _omagma.balanceOf(address(this));
+            if (_balanceOf < weekly) {
+                _omagma.mint(address(this), weekly - _balanceOf);
+            }
+
             _rewards_distributor.checkpoint_token(); // checkpoint token balance that was just minted in rewards distributor
             _rewards_distributor.checkpoint_total_supply(); // checkpoint supply
 
