@@ -2,6 +2,7 @@
 pragma solidity 0.8.13;
 
 import "contracts/interfaces/IMagma.sol";
+import "contracts/options-token/OptionsToken.sol";
 
 contract Magma is IMagma {
 
