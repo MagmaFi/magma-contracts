@@ -5,6 +5,7 @@ import "contracts/libraries/Math.sol";
 import "contracts/interfaces/IMinter.sol";
 import "contracts/interfaces/IRewardsDistributor.sol";
 import "contracts/interfaces/IMagma.sol";
+import "contracts/interfaces/IoMagma.sol";
 import "contracts/interfaces/IVoter.sol";
 import "contracts/interfaces/IVotingEscrow.sol";
 
@@ -16,6 +17,7 @@ contract Minter is IMinter {
     uint internal constant TAIL_EMISSION = 2;
     uint internal constant PRECISION = 1000;
     IMagma public immutable _magma;
+    IoMagma public immutable _omagma;
     IVoter public immutable _voter;
     IVotingEscrow public immutable _ve;
     IRewardsDistributor public immutable _rewards_distributor;
@@ -26,7 +28,7 @@ contract Minter is IMinter {
     address internal initializer;
     address public team;
     address public pendingTeam;
-    uint public teamRate;
+    uint public teamRate = 60; // 60 bps = 0.06%
     uint public constant MAX_TEAM_RATE = 60; // 60 bps = 0.06%
 
     event Mint(address indexed sender, uint weekly, uint circulating_supply, uint circulating_emission);
@@ -38,24 +40,22 @@ contract Minter is IMinter {
     ) {
         initializer = msg.sender;
         team = msg.sender;
-        teamRate = 60; // 60 bps = 0.06%
-        _magma = IMagma(IVotingEscrow(__ve).token());
-        _voter = IVoter(__voter);
         _ve = IVotingEscrow(__ve);
+        _magma = IMagma(_ve.token());
+        _omagma = IMagma(_ve.otoken());
+        _voter = IVoter(__voter);
         _rewards_distributor = IRewardsDistributor(__rewards_distributor);
         active_period = ((block.timestamp + (2 * WEEK)) / WEEK) * WEEK;
     }
 
     function initialize(
         address[] memory claimants,
-        uint[] memory amounts,
-        uint max // sum amounts / max = % ownership of top protocols, so if initial 20m is distributed, and target is 25% protocol ownership, then max - 4 x 20m = 80m
+        uint[] memory amounts
     ) external {
         require(initializer == msg.sender);
-        _magma.mint(address(this), max);
-        _magma.approve(address(_ve), type(uint).max);
         for (uint i = 0; i < claimants.length; i++) {
-            _ve.create_lock_for(amounts[i], LOCK, claimants[i]);
+            // as we mint an option, we should mint directly to partner:
+            _omagma.mint(claimants[i], amounts[i]);
         }
         initializer = address(0);
         active_period = ((block.timestamp) / WEEK) * WEEK; // allow minter.update_period() to mint new emissions THIS Thursday
@@ -94,18 +94,8 @@ contract Minter is IMinter {
 
     // calculates tail end (infinity) emissions as 0.2% of total supply
     function circulating_emission() public view returns (uint) {
+        // TODO: test this, as it return magma supply, not oMagma supply
         return (circulating_supply() * TAIL_EMISSION) / PRECISION;
-    }
-
-    // calculate inflation and adjust ve balances accordingly
-    function calculate_growth(uint _minted) public view returns (uint) {
-        uint _veTotal = _ve.totalSupply();
-        uint _magmaTotal = _magma.totalSupply();
-        return
-            (((((_minted * _veTotal) / _magmaTotal) * _veTotal) / _magmaTotal) *
-                _veTotal) /
-            _magmaTotal /
-            2;
     }
 
     // update period can only be called once per cycle (1 week)
@@ -116,20 +106,18 @@ contract Minter is IMinter {
             active_period = _period;
             weekly = weekly_emission();
 
-            // disable rebase:
-            uint _teamEmissions = (teamRate * weekly) /
-                (PRECISION - teamRate);
+            uint _teamEmissions = (teamRate * weekly) / (PRECISION - teamRate);
             uint _required = weekly + _teamEmissions;
-            uint _balanceOf = _magma.balanceOf(address(this));
+            uint _balanceOf = _omagma.balanceOf(address(this));
             if (_balanceOf < _required) {
-                _magma.mint(address(this), _required - _balanceOf);
+                _omagma.mint(address(this), _required - _balanceOf);
             }
 
-            require(_magma.transfer(team, _teamEmissions));
+            require(_omagma.transfer(team, _teamEmissions));
             _rewards_distributor.checkpoint_token(); // checkpoint token balance that was just minted in rewards distributor
             _rewards_distributor.checkpoint_total_supply(); // checkpoint supply
 
-            _magma.approve(address(_voter), weekly);
+            _omagma.approve(address(_voter), weekly);
             _voter.notifyRewardAmount(weekly);
 
             emit Mint(msg.sender, weekly, circulating_supply(), circulating_emission());

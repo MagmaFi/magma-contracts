@@ -57,7 +57,7 @@ contract Voter is IVoter {
     constructor(address __ve, address _factory, address  _gauges, address _bribes) {
         _ve = __ve;
         factory = _factory;
-        base = IVotingEscrow(__ve).token();
+        base = IVotingEscrow(__ve).otoken();
         gaugefactory = _gauges;
         bribefactory = _bribes;
         minter = msg.sender;
