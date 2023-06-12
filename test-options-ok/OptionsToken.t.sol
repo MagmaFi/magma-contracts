@@ -8,7 +8,8 @@ import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
 import {OptionsToken} from "../contracts/options-token/OptionsToken.sol";
 import {TestERC20Mintable} from "./mocks/TestERC20Mintable.sol";
 import {BalancerOracle} from "../contracts/options-token/oracles/BalancerOracle.sol";
-import {IERC20Mintable} from "../contracts/options-token/interfaces/IERC20Mintable.sol";
+import {IMagma} from "../contracts/interfaces/IMagma.sol";
+import {Magma} from "../contracts/Magma.sol";
 import {MockBalancerTwapOracle} from "./mocks/MockBalancerTwapOracle.sol";
 
 contract OptionsTokenTest is Test {
@@ -31,7 +32,7 @@ contract OptionsTokenTest is Test {
     BalancerOracle oracle;
     MockBalancerTwapOracle balancerTwapOracle;
     TestERC20Mintable paymentToken;
-    IERC20Mintable underlyingToken;
+    Magma underlyingToken;
 
     function setUp() public {
         // set up accounts
@@ -44,9 +45,10 @@ contract OptionsTokenTest is Test {
         oracle =
             new BalancerOracle(balancerTwapOracle, owner, ORACLE_MULTIPLIER, ORACLE_SECS, ORACLE_AGO, ORACLE_MIN_PRICE);
         paymentToken = new TestERC20Mintable();
-        underlyingToken = IERC20Mintable(address(new TestERC20Mintable()));
-        optionsToken =
-        new OptionsToken("TIT Call Option Token", "oTIT", owner, tokenAdmin, paymentToken, underlyingToken, oracle, treasury);
+        underlyingToken = new Magma();
+        optionsToken = new OptionsToken("TIT Call Option Token", "oTIT",
+            tokenAdmin, paymentToken, underlyingToken, oracle, treasury);
+        underlyingToken.setRedemptionReceiver( address(optionsToken) );
 
         // set up contracts
         balancerTwapOracle.setTwapValue(ORACLE_INIT_TWAP_VALUE);

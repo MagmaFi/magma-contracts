@@ -7,5 +7,5 @@ interface IoMagma {
     function approve(address spender, uint value) external returns (bool);
     function transfer(address, uint) external returns (bool);
     function transferFrom(address,address,uint) external returns (bool);
-    function mint(address, uint) external returns (bool);
+    function mint(address, uint) external ;
 }

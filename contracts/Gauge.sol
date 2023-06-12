@@ -118,6 +118,7 @@ contract Gauge is IGauge {
             return (0, 0);
         }
         (claimed0, claimed1) = IPair(stake).claimFees();
+
         if (claimed0 > 0 || claimed1 > 0) {
             uint _fees0 = fees0 + claimed0;
             uint _fees1 = fees1 + claimed1;
@@ -425,6 +426,7 @@ contract Gauge is IGauge {
     function earned(address token, address account) public view returns (uint) {
         uint _startTimestamp = Math.max(lastEarn[token][account], rewardPerTokenCheckpoints[token][0].timestamp);
         if (numCheckpoints[account] == 0) {
+
             return 0;
         }
 
@@ -455,6 +457,7 @@ contract Gauge is IGauge {
     }
 
     function deposit(uint amount, uint tokenId) public lock {
+
         require(amount > 0);
         _updateRewardForAllTokens();
 

@@ -212,6 +212,8 @@ async function main() {
     await minter.deployed();
     set("Minter", minter.address);
     await verify(minter, minterArgs);
+    tx = await omagma.setMinter(minter.address);
+    await tx.wait();
 
     const governorArgs = [escrow.address];
     const governor = await MagmaGovernor.deploy(...governorArgs);

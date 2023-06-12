@@ -64,8 +64,8 @@ contract VotingEscrow is IERC721, IERC721Metadata, IVotes {
                                CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
-    address public immutable token;
-    address public immutable otoken; // option token
+    address public immutable token; // Magma/MNT LP token
+    address public immutable oToken; // option token
     address public voter;
     address public team;
     address public artProxy;
@@ -89,9 +89,11 @@ contract VotingEscrow is IERC721, IERC721Metadata, IVotes {
 
     /// @notice Contract constructor
     /// @param token_addr `MAGMA` token address
-    constructor(address token_addr, address otoken_addr, address art_proxy) {
+    /// @param oToken_addr `oToken` token address
+    /// @param art_proxy `ArtProxy` contract address
+    constructor(address token_addr, address oToken_addr, address art_proxy) {
         token = token_addr;
-        otoken = otoken_addr;
+        oToken = oToken_addr;
         voter = msg.sender;
         team = msg.sender;
         artProxy = art_proxy;

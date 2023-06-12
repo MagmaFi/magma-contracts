@@ -42,7 +42,7 @@ contract Minter is IMinter {
         team = msg.sender;
         _ve = IVotingEscrow(__ve);
         _magma = IMagma(_ve.token());
-        _omagma = IoMagma(_ve.otoken());
+        _omagma = IoMagma(_ve.oToken());
         _voter = IVoter(__voter);
         _rewards_distributor = IRewardsDistributor(__rewards_distributor);
         active_period = ((block.timestamp + (2 * WEEK)) / WEEK) * WEEK;
@@ -52,7 +52,7 @@ contract Minter is IMinter {
         address[] memory claimants,
         uint[] memory amounts
     ) external {
-        require(initializer == msg.sender);
+        require(initializer == msg.sender,"ALREADY_INITIALIZED");
         for (uint i = 0; i < claimants.length; i++) {
             // as we mint an option, we should mint directly to partner:
             _omagma.mint(claimants[i], amounts[i]);
@@ -107,6 +107,7 @@ contract Minter is IMinter {
     function update_period() external returns (uint) {
         uint _period = active_period;
         if (block.timestamp >= _period + WEEK && initializer == address(0)) { // only trigger if new week
+
             _period = (block.timestamp / WEEK) * WEEK;
             active_period = _period;
             weekly = weekly_emission();

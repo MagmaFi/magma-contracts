@@ -57,12 +57,13 @@ contract Voter is IVoter {
     constructor(address __ve, address _factory, address  _gauges, address _bribes) {
         _ve = __ve;
         factory = _factory;
-        base = IVotingEscrow(__ve).otoken();
+        base = IVotingEscrow(__ve).oToken();
         gaugefactory = _gauges;
         bribefactory = _bribes;
         minter = msg.sender;
         governor = msg.sender;
         emergencyCouncil = msg.sender;
+        _whitelist(base);
     }
 
     // simple re-entrancy check

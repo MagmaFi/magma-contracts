@@ -85,13 +85,13 @@ contract Magma is IMagma {
     }
 
     function mint(address account, uint amount) external returns (bool) {
-        require(msg.sender == minter);
+        require(msg.sender == minter,"NOT-AUTHORIZED");
         _mint(account, amount);
         return true;
     }
 
     function claim(address account, uint amount) external returns (bool) {
-        require(msg.sender == redemptionReceiver || msg.sender == merkleClaim);
+        require(msg.sender == redemptionReceiver || msg.sender == merkleClaim,"NOT-AUTHORIZED");
         _mint(account, amount);
         return true;
     }
