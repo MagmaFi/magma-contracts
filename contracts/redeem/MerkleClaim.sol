@@ -3,17 +3,17 @@ pragma solidity 0.8.13;
 
 /// ============ Imports ============
 
-import {IMagma} from "contracts/interfaces/IMagma.sol";
+import {IOption} from "contracts/interfaces/IOption.sol";
 import {MerkleProof} from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol"; // OZ: MerkleProof
 
 /// @title MerkleClaim
-/// @notice Claims MAGMA for members of a merkle tree
+/// @notice Claims OPTION for members of a merkle tree
 /// @author Modified from Merkle Airdrop Starter (https://github.com/Anish-Agnihotri/merkle-airdrop-starter/blob/master/contracts/src/MerkleClaimERC20.sol)
 contract MerkleClaim {
     /// ============ Immutable storage ============
 
-    /// @notice MAGMA token to claim
-    IMagma public immutable MAGMA;
+    /// @notice OPTION token to claim
+    IOption public immutable OPTION;
     /// @notice ERC20-claimee inclusion root
     bytes32 public immutable merkleRoot;
 
@@ -25,10 +25,10 @@ contract MerkleClaim {
     /// ============ Constructor ============
 
     /// @notice Creates a new MerkleClaim contract
-    /// @param _magma address
+    /// @param _token address
     /// @param _merkleRoot of claimees
-    constructor(address _magma, bytes32 _merkleRoot) {
-        MAGMA = IMagma(_magma);
+    constructor(address _token, bytes32 _merkleRoot) {
+        OPTION = IOption(_token);
         merkleRoot = _merkleRoot;
     }
 
@@ -60,7 +60,7 @@ contract MerkleClaim {
         hasClaimed[msg.sender] = true;
 
         // Claim tokens for address
-        require(MAGMA.claim(msg.sender, amount), "CLAIM_FAILED");
+        require(OPTION.claim(msg.sender, amount), "CLAIM_FAILED");
 
         // Emit claim event
         emit Claim(msg.sender, amount);

@@ -11,7 +11,7 @@ interface IVotingEscrow {
     }
 
     function token() external view returns (address);
-    function oToken() external view returns (address);
+    function option() external view returns (address);
     function team() external returns (address);
     function epoch() external view returns (uint);
     function point_history(uint loc) external view returns (Point memory);

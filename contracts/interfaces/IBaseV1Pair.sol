@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
 
-struct Observation {
-    uint256 timestamp;
-    uint256 reserve0Cumulative;
-    uint256 reserve1Cumulative;
-}
+    struct Observation {
+        uint256 timestamp;
+        uint256 reserve0Cumulative;
+        uint256 reserve1Cumulative;
+    }
 
 interface IBaseV1Pair {
     function transferFrom(address src, address dst, uint amount) external returns (bool);

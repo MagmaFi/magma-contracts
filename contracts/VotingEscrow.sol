@@ -64,8 +64,8 @@ contract VotingEscrow is IERC721, IERC721Metadata, IVotes {
                                CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
-    address public immutable token; // Magma/MNT LP token
-    address public immutable oToken; // option token
+    address public immutable token;
+    address public immutable option;
     address public voter;
     address public team;
     address public artProxy;
@@ -88,12 +88,10 @@ contract VotingEscrow is IERC721, IERC721Metadata, IVotes {
     uint internal tokenId;
 
     /// @notice Contract constructor
-    /// @param token_addr `MAGMA` token address
-    /// @param oToken_addr `oToken` token address
-    /// @param art_proxy `ArtProxy` contract address
-    constructor(address token_addr, address oToken_addr, address art_proxy) {
+    /// @param token_addr `OPTION` token address
+    constructor(address token_addr, address option_addr, address art_proxy) {
         token = token_addr;
-        oToken = oToken_addr;
+        option = option_addr;
         voter = msg.sender;
         team = msg.sender;
         artProxy = art_proxy;
@@ -780,6 +778,12 @@ contract VotingEscrow is IERC721, IERC721Metadata, IVotes {
 
         _deposit_for(_tokenId, _value, unlock_time, locked[_tokenId], DepositType.CREATE_LOCK_TYPE);
         return _tokenId;
+    }
+
+    /// @notice do a full lock of lp balance for 4 years
+    /// @return _tokenId of the lock
+    function create_max_all_lock() external nonreentrant returns (uint) {
+        return _create_lock(IERC20(token).balanceOf(msg.sender), (block.timestamp + MAXTIME) - WEEK, msg.sender);
     }
 
     /// @notice Deposit `_value` tokens for `msg.sender` and lock for `_lock_duration`

@@ -28,7 +28,7 @@ async function loadCfg() {
 
 task("bribeInfo", "stats about bribes").setAction(async () => {
     const cfg = await loadCfg();
-    const IERC20 = await ethers.getContractFactory("contracts/Magma.sol:Magma")
+    const IERC20 = await ethers.getContractFactory("contracts/Token.sol:Option")
     const Pair = await ethers.getContractFactory("contracts/Pair.sol:Pair")
     const Main = await ethers.getContractFactory("contracts/Voter.sol:Voter")
     const Gauge = await ethers.getContractFactory("contracts/Gauge.sol:Gauge")
@@ -172,7 +172,7 @@ task("gauges", "Voter.distributeFees").setAction(async () => {
 
 task("showFees", "showFees").setAction(async () => {
     const cfg = await loadCfg();
-    const IERC20 = await ethers.getContractFactory("contracts/Magma.sol:Magma")
+    const IERC20 = await ethers.getContractFactory("contracts/Token.sol:Option")
     const Main = await ethers.getContractFactory("contracts/Voter.sol:Voter")
     const Gauge = await ethers.getContractFactory("contracts/Gauge.sol:Gauge")
     const InternalBribe = await ethers.getContractFactory("contracts/InternalBribe.sol:InternalBribe")
@@ -210,9 +210,9 @@ task("batchRewardPerToken", "Gauge.batchRewardPerToken").setAction(async () => {
         const gauge = Gauge.attach(gaugeAddress);
         console.log(`- ${i}: ${poolAddress} = ${gaugeAddress}`);
         const supplyNumCheckpoints = await gauge.supplyNumCheckpoints();
-        const earned1 = await gauge.earned(cfg.Magma, process.env.MULTISIG);
-        let tx = await gauge.batchRewardPerToken(cfg.Magma, supplyNumCheckpoints);
-        const earned2 = await gauge.earned(cfg.Magma, process.env.MULTISIG);
+        const earned1 = await gauge.earned(cfg.Option, process.env.MULTISIG);
+        let tx = await gauge.batchRewardPerToken(cfg.Option, supplyNumCheckpoints);
+        const earned2 = await gauge.earned(cfg.Option, process.env.MULTISIG);
         console.log(`  - maxRuns=${supplyNumCheckpoints}, earned1=${earned1}, earned2=${earned2}`);
         console.log(`  - tx=${tx.hash}`);
     }
@@ -228,7 +228,7 @@ task("earned", "Gauge.earned").setAction(async () => {
         const poolAddress = await main.pools(i);
         const gaugeAddress = await main.gauges(poolAddress);
         const gauge = Gauge.attach(gaugeAddress);
-        const earned = await gauge.earned(cfg.Magma, process.env.MULTISIG);
+        const earned = await gauge.earned(cfg.Option, process.env.MULTISIG);
         const derivedBalance = await gauge.derivedBalance(process.env.MULTISIG);
         console.log(`- ${i}: gauge: ${gaugeAddress}, earned: ${earned}, balance: ${derivedBalance}`);
     }
@@ -310,17 +310,17 @@ task("getFees", "getFees")
 task("merkleRoot", "MerkleClaim.merkleRoot").setAction(async () => {
     // const cfg = await loadCfg();
     const Main = await ethers.getContractFactory("MerkleClaim")
-    const Magma = await ethers.getContractFactory("Magma")
+    const Option = await ethers.getContractFactory("Option")
     const main = Main.attach('0x6C54e61E0295b6f22d8F91CEd5ddE712f2061eE0');
     const merkleRoot = await main.merkleRoot();
-    const magmaAddress = await main.MAGMA();
-    const magma = Magma.attach(magmaAddress);
+    const magmaAddress = await main.oToken();
+    const magma = Option.attach(magmaAddress);
     const merkleClaim = await magma.merkleClaim();
     const minter = await magma.minter();
-    console.log(`MAGMA: ${magmaAddress}`);
-    console.log(`- Magma.merkleRoot: ${merkleRoot}`);
-    console.log(`- Magma.merkleClaim: ${merkleClaim}`);
-    console.log(`- Magma.minter: ${minter}`);
+    console.log(`oToken: ${magmaAddress}`);
+    console.log(`- Option.merkleRoot: ${merkleRoot}`);
+    console.log(`- Option.merkleClaim: ${merkleClaim}`);
+    console.log(`- Option.minter: ${minter}`);
 });
 
 const config: HardhatUserConfig = {

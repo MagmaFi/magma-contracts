@@ -16,8 +16,9 @@ import "contracts/PairFees.sol";
 import "contracts/RewardsDistributor.sol";
 import "contracts/Router.sol";
 import "contracts/Router2.sol";
-import "contracts/Magma.sol";
-import "contracts/MagmaLibrary.sol";
+import "contracts/Token.sol";
+import "contracts/Option.sol";
+import "contracts/TokenLibrary.sol";
 import "contracts/Voter.sol";
 import "contracts/VeArtProxy.sol";
 import "contracts/VotingEscrow.sol";
@@ -27,9 +28,6 @@ import "utils/TestToken.sol";
 import "utils/TestVoter.sol";
 import "utils/TestVotingEscrow.sol";
 import "utils/TestWETH.sol";
-
-import "contracts/options-token/OptionsToken.sol";
-import "contracts/options-token/oracles/UniswapV2Oracle.sol";
 
 abstract contract BaseTest is Test, TestOwner {
     uint256 constant USDC_1 = 1e6;
@@ -50,20 +48,18 @@ abstract contract BaseTest is Test, TestOwner {
     MockERC20 FRAX;
     MockERC20 DAI;
     TestWETH WETH; // Mock WETH token
-    Magma MAGMA;
+    Option oToken;
+    Token token;
     MockERC20 WEVE;
     MockERC20 LR; // late reward
     TestToken stake; // MockERC20 with claimFees() function that returns (0,0)
     PairFactory factory;
     Router router;
     Router2 router2;
-    MagmaLibrary lib;
+    TokenLibrary lib;
     Pair pair;
     Pair pair2;
     Pair pair3;
-
-    OptionsToken optionsToken;
-    UniswapV2Oracle oracle;
 
     function deployOwners() public {
         owner = TestOwner(address(this));
@@ -79,7 +75,8 @@ abstract contract BaseTest is Test, TestOwner {
         USDC = new MockERC20("USDC", "USDC", 6);
         FRAX = new MockERC20("FRAX", "FRAX", 18);
         DAI = new MockERC20("DAI", "DAI", 18);
-        MAGMA = new Magma();
+        oToken = new Option();
+        token = new Token();
         WEVE = new MockERC20("WEVE", "WEVE", 18);
         LR = new MockERC20("LR", "LR", 18);
         WETH = new TestWETH();
@@ -94,9 +91,9 @@ abstract contract BaseTest is Test, TestOwner {
         }
     }
 
-    function mintMagma(address[] memory _accounts, uint256[] memory _amounts) public {
+    function mintOption(address[] memory _accounts, uint256[] memory _amounts) public {
         for (uint256 i = 0; i < _amounts.length; i++) {
-            MAGMA.mint(_accounts[i], _amounts[i]);
+            oToken.mint(_accounts[i], _amounts[i]);
         }
     }
 
@@ -132,15 +129,9 @@ abstract contract BaseTest is Test, TestOwner {
         router = new Router(address(factory), address(WETH));
         router2 = new Router2(address(factory), address(WETH));
         assertEq(router.factory(), address(factory));
-        lib = new MagmaLibrary(address(router));
+        lib = new TokenLibrary(address(router));
     }
-    function deployPair(uint tokenAmount, uint wethAmount) public returns(address) {
-        deployPairFactoryAndRouter();
-        MAGMA.approve(address(router), tokenAmount);
-        router.addLiquidityETH{value: wethAmount}(address(MAGMA), false, tokenAmount, 0, 0, address(this), block.timestamp);
-        pair = Pair(router.pairFor(address(MAGMA), address(WETH), false));
-        return address(pair);
-    }
+
     function deployPairWithOwner(address _owner) public {
         TestOwner(_owner).approve(address(FRAX), address(router), TOKEN_1);
         TestOwner(_owner).approve(address(USDC), address(router), USDC_1);
@@ -169,34 +160,6 @@ abstract contract BaseTest is Test, TestOwner {
         TestOwner(_owner).transfer(address(USDC), address(pair), USDC_1);
         TestOwner(_owner).transfer(address(FRAX), address(pair), TOKEN_1);
         TestOwner(_owner).mint(address(pair), _owner);
-    }
-
-    function deployOracleWithDefaultPair(uint magmaAmount, uint ethAmount) public returns(address) {
-        if( address(USDC) == address(0) ) {
-            deployCoins();
-            mintStables();
-        }
-        if( MAGMA.balanceOf(address(this)) == 0 ) {
-            address[] memory _accounts = new address[](1);
-            _accounts[0] = address(this);
-            uint256[] memory _amounts = new uint256[](1);
-            _amounts[0] = 100_000 * TOKEN_1;
-            mintMagma(_accounts, _amounts);
-            mintWETH(_accounts, _amounts);
-            dealETH(_accounts, _amounts);
-        }
-        deployPairFactoryAndRouter();
-        address magmaEth = deployPair(magmaAmount, ethAmount);
-        oracle = new UniswapV2Oracle(magmaEth, address(WETH));
-        return address(oracle);
-    }
-
-    function deployOptionsToken() public {
-        if( address(oracle) == address(0) )
-            deployOracleWithDefaultPair(100e18, 100e18);
-        // prevent timestamp calculation problem in the oracle:
-        vm.warp(1686178415);
-        optionsToken = new OptionsToken("OPT","Option", address(this), ERC20(WETH), IMagma(MAGMA), IOracle(oracle), address(owner));
     }
 
     receive() external payable {}

@@ -61,8 +61,8 @@ async function main() {
     // Load
     const [
         UniswapV2Oracle,
-        OptionsToken,
-        Magma,
+        Token,
+        Option,
         GaugeFactory,
         BribeFactory,
         PairFactory,
@@ -74,32 +74,32 @@ async function main() {
         RewardsDistributor,
         Voter,
         Minter,
-        MagmaGovernor,
+        TokenGovernor,
         MerkleClaim,
         WrappedExternalBribeFactory
     ] = await Promise.all([
         hre.ethers.getContractFactory("UniswapV2Oracle"),
-        hre.ethers.getContractFactory("OptionsToken"),
-        hre.ethers.getContractFactory("Magma"),
+        hre.ethers.getContractFactory("Token"),
+        hre.ethers.getContractFactory("Option"),
         hre.ethers.getContractFactory("GaugeFactory"),
         hre.ethers.getContractFactory("BribeFactory"),
         hre.ethers.getContractFactory("PairFactory"),
         hre.ethers.getContractFactory("Router"),
         hre.ethers.getContractFactory("Router2"),
-        hre.ethers.getContractFactory("MagmaLibrary"),
+        hre.ethers.getContractFactory("TokenLibrary"),
         hre.ethers.getContractFactory("VeArtProxy"),
         hre.ethers.getContractFactory("VotingEscrow"),
         hre.ethers.getContractFactory("RewardsDistributor"),
         hre.ethers.getContractFactory("Voter"),
         hre.ethers.getContractFactory("Minter"),
-        hre.ethers.getContractFactory("MagmaGovernor"),
+        hre.ethers.getContractFactory("TokenGovernor"),
         hre.ethers.getContractFactory("MerkleClaim"),
         hre.ethers.getContractFactory("WrappedExternalBribeFactory"),
     ]);
 
-    const magma = await Magma.deploy();
+    const magma = await Option.deploy();
     await magma.deployed();
-    set("Magma", magma.address);
+    set("Option", magma.address);
     await verify(magma);
 
     // deploy router and factory to be able to create the pair for oracle:
@@ -137,19 +137,19 @@ async function main() {
     await verify(oracle, oracleArgs);
 
     // deploy option token:
-    const oMagmaArgs = [
-        "Option Magma",
-        "oMagma",
+    const oOptionArgs = [
+        "Option Option",
+        "oOption",
         CONFIG.teamEOA,
         CONFIG.WETH,
-        CONTRACTS.Magma,
+        CONTRACTS.Option,
         CONTRACTS.Oracle,
     ];
-    const omagma = await OptionsToken.deploy(...oMagmaArgs);
+    const omagma = await Token.deploy(...oOptionArgs);
     await omagma.deployed();
-    set("oMagma", magma.address);
-    await verify(omagma, oMagmaArgs);
-    // allow option token to mint Magma:
+    set("oOption", magma.address);
+    await verify(omagma, oOptionArgs);
+    // allow option token to mint Option:
     tx = await magma.setRedemptionReceiver(omagma.address);
     await tx.wait();
     // set option treasure, this is where option payment goes:
@@ -212,13 +212,13 @@ async function main() {
     await minter.deployed();
     set("Minter", minter.address);
     await verify(minter, minterArgs);
-    tx = await omagma.setMinter(minter.address);
+    tx = await omagma.addMinter(minter.address);
     await tx.wait();
 
     const governorArgs = [escrow.address];
-    const governor = await MagmaGovernor.deploy(...governorArgs);
+    const governor = await TokenGovernor.deploy(...governorArgs);
     await governor.deployed();
-    set("MagmaGovernor", escrow.address);
+    set("TokenGovernor", escrow.address);
     await verify(governor, governorArgs);
 
     const claimArgs = [magma.address, CONFIG.merkleRoot];
@@ -232,10 +232,10 @@ async function main() {
     tx = await magma.initialMint(CONFIG.teamTreasure, CONFIG.teamAmount);
     tx.wait();
 
-    tx = await magma.setMerkleClaim(claim.address);
+    tx = await magma.addMinter(claim.address);
     tx.wait();
 
-    tx = await magma.setMinter(minter.address);
+    tx = await magma.addMinter(minter.address);
     tx.wait();
 
     tx = await pairFactory.setPauser(CONFIG.teamEOA);

@@ -4,8 +4,8 @@ pragma solidity 0.8.13;
 import "contracts/libraries/Math.sol";
 import "contracts/interfaces/IMinter.sol";
 import "contracts/interfaces/IRewardsDistributor.sol";
-import "contracts/interfaces/IMagma.sol";
-import "contracts/interfaces/IoMagma.sol";
+import "contracts/interfaces/IOption.sol";
+import "contracts/interfaces/IToken.sol";
 import "contracts/interfaces/IVoter.sol";
 import "contracts/interfaces/IVotingEscrow.sol";
 
@@ -16,21 +16,22 @@ contract Minter is IMinter {
     uint internal constant EMISSION = 990;
     uint internal constant TAIL_EMISSION = 2;
     uint internal constant PRECISION = 1000;
-    IMagma public immutable _magma;
-    IoMagma public immutable _omagma;
+    IOption public immutable _option;
+    IToken public immutable _token;
     IVoter public immutable _voter;
     IVotingEscrow public immutable _ve;
     IRewardsDistributor public immutable _rewards_distributor;
-    uint public weekly = 4_000_000 * 1e18; // represents a starting weekly emission of 2M MAGMA (MAGMA has 18 decimals)
+    uint public weekly = 1_838_000 * 1e18; // represents a starting weekly emission of 1.838M OPTION (OPTION has 18 decimals)
     uint public active_period;
     uint internal constant LOCK = 86400 * 7 * 52 * 4;
-
+    uint epochStart = 0;
     address internal initializer;
     address public team;
+    bool public teamEmissionsActive = false;
     address public pendingTeam;
-    uint public teamRate = 500; // 500 bps = 0.5%
-    uint public constant MAX_TEAM_RATE = 600; // 60 bps = 0.5%
-    bool public teamEmissionStatus = false; // we start disabled
+    uint public teamRate;
+    uint public constant MAX_TEAM_RATE = 60; // 60 bps = 0.06%
+
     event Mint(address indexed sender, uint weekly, uint circulating_supply, uint circulating_emission);
 
     constructor(
@@ -38,12 +39,14 @@ contract Minter is IMinter {
         address __ve, // the ve(3,3) system that will be locked into
         address __rewards_distributor // the distribution system that ensures users aren't diluted
     ) {
+        epochStart = block.timestamp;
         initializer = msg.sender;
         team = msg.sender;
-        _ve = IVotingEscrow(__ve);
-        _magma = IMagma(_ve.token());
-        _omagma = IoMagma(_ve.oToken());
+        teamRate = 60; // 60 bps = 0.06%
+        _token = IToken(IVotingEscrow(__ve).token());
+        _option = IOption(IVotingEscrow(__ve).option());
         _voter = IVoter(__voter);
+        _ve = IVotingEscrow(__ve);
         _rewards_distributor = IRewardsDistributor(__rewards_distributor);
         active_period = ((block.timestamp + (2 * WEEK)) / WEEK) * WEEK;
     }
@@ -52,10 +55,9 @@ contract Minter is IMinter {
         address[] memory claimants,
         uint[] memory amounts
     ) external {
-        require(initializer == msg.sender,"ALREADY_INITIALIZED");
+        require(initializer == msg.sender);
         for (uint i = 0; i < claimants.length; i++) {
-            // as we mint an option, we should mint directly to partner:
-            _omagma.mint(claimants[i], amounts[i]);
+            _option.mint(claimants[i], amounts[i]);
         }
         initializer = address(0);
         active_period = ((block.timestamp) / WEEK) * WEEK; // allow minter.update_period() to mint new emissions THIS Thursday
@@ -77,15 +79,18 @@ contract Minter is IMinter {
         teamRate = _teamRate;
     }
 
-    function setTeamEmissionStatus(bool _teamEmissionStatus) external {
+    function setTeamEmissionsActive(bool _teamEmissionsActive) external {
         require(msg.sender == team, "not team");
-        teamEmissionStatus = _teamEmissionStatus;
+        teamEmissionsActive = _teamEmissionsActive;
+    }
+
+    function getEpoch() public view returns (uint) {
+        return (block.timestamp - epochStart) / WEEK;
     }
 
     // calculate circulating supply as total token supply - locked supply
     function circulating_supply() public view returns (uint) {
-        // we compute both the total supply of MAGMA and oMAGMA as oMagma can be redeemed for MAGMA:
-        return (_magma.totalSupply() + _omagma.totalSupply() ) - _ve.totalSupply();
+        return (_token.totalSupply() + _option.totalSupply() ) - _ve.totalSupply();
     }
 
     // emission calculation is 1% of available supply to mint adjusted by circulating / total supply
@@ -107,27 +112,23 @@ contract Minter is IMinter {
     function update_period() external returns (uint) {
         uint _period = active_period;
         if (block.timestamp >= _period + WEEK && initializer == address(0)) { // only trigger if new week
-
             _period = (block.timestamp / WEEK) * WEEK;
             active_period = _period;
             weekly = weekly_emission();
-
-            if( teamEmissionStatus ){
-                uint _teamEmissions = (teamRate * weekly) / (PRECISION - teamRate);
-                // team emissions is in Magma:
-                _magma.mint(team, _teamEmissions);
-                require(_magma.transfer(team, _teamEmissions));
+            uint _teamEmissions = 0;
+            if( teamEmissionsActive ){
+                _teamEmissions = (teamRate * weekly) / (PRECISION - teamRate);
+                _token.mint(team, _teamEmissions);
             }
-
-            uint _balanceOf = _omagma.balanceOf(address(this));
+            uint _balanceOf = _option.balanceOf(address(this));
             if (_balanceOf < weekly) {
-                _omagma.mint(address(this), weekly - _balanceOf);
+                _option.mint(address(this), weekly - _balanceOf);
             }
 
             _rewards_distributor.checkpoint_token(); // checkpoint token balance that was just minted in rewards distributor
             _rewards_distributor.checkpoint_total_supply(); // checkpoint supply
 
-            _omagma.approve(address(_voter), weekly);
+            _option.approve(address(_voter), weekly);
             _voter.notifyRewardAmount(weekly);
 
             emit Mint(msg.sender, weekly, circulating_supply(), circulating_emission());

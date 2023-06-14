@@ -18,6 +18,7 @@ contract Voter is IVoter {
     address public immutable _ve; // the ve token that governs these contracts
     address public immutable factory; // the PairFactory
     address internal immutable base;
+    address internal immutable option;
     address public immutable gaugefactory;
     address public immutable bribefactory;
     uint internal constant DURATION = 7 days; // rewards are released over 7 days
@@ -57,13 +58,13 @@ contract Voter is IVoter {
     constructor(address __ve, address _factory, address  _gauges, address _bribes) {
         _ve = __ve;
         factory = _factory;
-        base = IVotingEscrow(__ve).oToken();
+        base = IVotingEscrow(__ve).token();
+        option = IVotingEscrow(__ve).option();
         gaugefactory = _gauges;
         bribefactory = _bribes;
         minter = msg.sender;
         governor = msg.sender;
         emergencyCouncil = msg.sender;
-        _whitelist(base);
     }
 
     // simple re-entrancy check
@@ -217,13 +218,12 @@ contract Voter is IVoter {
             allowedRewards[1] = tokenB;
             internalRewards[0] = tokenA;
             internalRewards[1] = tokenB;
-
-            if (base != tokenA && base != tokenB) {
-              allowedRewards[2] = base;
+            if (option != tokenA && option != tokenB) {
+              allowedRewards[2] = option;
             }
         }
 
-        if (msg.sender != governor) { // gov can create for any pool, even non-Magma pairs
+        if (msg.sender != governor) { // gov can create for any pool, even non-Option pairs
             require(isPair, "!_pool");
             require(isWhitelisted[tokenA] && isWhitelisted[tokenB], "!whitelisted");
         }
@@ -232,7 +232,7 @@ contract Voter is IVoter {
         address _external_bribe = IBribeFactory(bribefactory).createExternalBribe(allowedRewards);
         address _gauge = IGaugeFactory(gaugefactory).createGauge(_pool, _internal_bribe, _external_bribe, _ve, isPair, allowedRewards);
 
-        IERC20(base).approve(_gauge, type(uint).max);
+        IERC20(option).approve(_gauge, type(uint).max);
         internal_bribes[_gauge] = _internal_bribe;
         external_bribes[_gauge] = _external_bribe;
         gauges[_pool] = _gauge;
@@ -293,12 +293,12 @@ contract Voter is IVoter {
     mapping(address => uint) public claimable;
 
     function notifyRewardAmount(uint amount) external {
-        _safeTransferFrom(base, msg.sender, address(this), amount); // transfer the distro in
+        _safeTransferFrom(option, msg.sender, address(this), amount); // transfer the distro in
         uint256 _ratio = amount * 1e18 / totalWeight; // 1e18 adjustment is removed during claim
         if (_ratio > 0) {
             index += _ratio;
         }
-        emit NotifyReward(msg.sender, base, amount);
+        emit NotifyReward(msg.sender, option, amount);
     }
 
     function updateFor(address[] memory _gauges) external {
@@ -372,9 +372,9 @@ contract Voter is IVoter {
         IMinter(minter).update_period();
         _updateFor(_gauge); // should set claimable to 0 if killed
         uint _claimable = claimable[_gauge];
-        if (_claimable > IGauge(_gauge).left(base) && _claimable / DURATION > 0) {
+        if (_claimable > IGauge(_gauge).left(option) && _claimable / DURATION > 0) {
             claimable[_gauge] = 0;
-            IGauge(_gauge).notifyRewardAmount(base, _claimable);
+            IGauge(_gauge).notifyRewardAmount(option, _claimable);
             emit DistributeReward(msg.sender, _gauge, _claimable);
         }
     }
