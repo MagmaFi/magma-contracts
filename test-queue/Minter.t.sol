@@ -22,7 +22,7 @@ contract MinterTest is BaseTest {
         mintOption(owners, amounts);
 
         VeArtProxy artProxy = new VeArtProxy();
-        escrow = new VotingEscrow(address(token),address(oToken), address(artProxy));
+        escrow = new VotingEscrow(address(lp),address(oToken), address(artProxy));
         factory = new PairFactory();
         router = new Router(address(factory), address(owner));
         gaugeFactory = new GaugeFactory();

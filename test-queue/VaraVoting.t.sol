@@ -24,7 +24,7 @@ contract OptionVotingTest is BaseTest {
         mintOption(owners, amountsOption);
         team = new TestOwner();
         VeArtProxy artProxy = new VeArtProxy();
-        escrow = new VotingEscrow(address(token),address(oToken), address(artProxy));
+        escrow = new VotingEscrow(address(lp),address(oToken), address(artProxy));
         factory = new PairFactory();
         router = new Router(address(factory), address(owner));
         gaugeFactory = new GaugeFactory();

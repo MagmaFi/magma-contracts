@@ -28,7 +28,7 @@ import "utils/TestToken.sol";
 import "utils/TestVoter.sol";
 import "utils/TestVotingEscrow.sol";
 import "utils/TestWETH.sol";
-
+import "contracts/oracles/UniswapV2Oracle.sol";
 abstract contract BaseTest is Test, TestOwner {
     uint256 constant USDC_1 = 1e6;
     uint256 constant USDC_100K = 1e11; // 1e5 = 100K tokens with 6 decimals
@@ -61,6 +61,10 @@ abstract contract BaseTest is Test, TestOwner {
     Pair pair2;
     Pair pair3;
 
+    // store token/weth pair when adding liquidity:
+    Pair lp;
+    UniswapV2Oracle oracle;
+    
     function deployOwners() public {
         owner = TestOwner(address(this));
         owner2 = new TestOwner();
@@ -115,23 +119,17 @@ abstract contract BaseTest is Test, TestOwner {
         }
     }
 
+    function mintToken(address[] memory _accounts, uint256[] memory _amounts) public {
+        for (uint256 i = 0; i < _accounts.length; i++) {
+            token.mint(_accounts[i], _amounts[i]);
+        }
+    }
+
     function dealETH(address [] memory _accounts, uint256[] memory _amounts) public {
         for (uint256 i = 0; i < _accounts.length; i++) {
             vm.deal(_accounts[i], _amounts[i]);
         }
     }
-
-    function deployPairFactoryAndRouter() public {
-        factory = new PairFactory();
-        assertEq(factory.allPairsLength(), 0);
-        factory.setFee(true, 1); // set fee back to 0.01% for old tests
-        factory.setFee(false, 1);
-        router = new Router(address(factory), address(WETH));
-        router2 = new Router2(address(factory), address(WETH));
-        assertEq(router.factory(), address(factory));
-        lib = new TokenLibrary(address(router));
-    }
-
     function deployPairWithOwner(address _owner) public {
         TestOwner(_owner).approve(address(FRAX), address(router), TOKEN_1);
         TestOwner(_owner).approve(address(USDC), address(router), USDC_1);
@@ -143,7 +141,46 @@ abstract contract BaseTest is Test, TestOwner {
         TestOwner(_owner).approve(address(DAI), address(router), TOKEN_1);
         TestOwner(_owner).addLiquidity(payable(address(router)), address(FRAX), address(DAI), true, TOKEN_1, TOKEN_1, 0, 0, address(owner), block.timestamp);
 
-        assertEq(factory.allPairsLength(), 3);
+        uint pairs = address(lp) == address(0) ? 3 : 4;
+        assertEq(factory.allPairsLength(), pairs);
+
+        address create2address = router.pairFor(address(FRAX), address(USDC), true);
+        address address1 = factory.getPair(address(FRAX), address(USDC), true);
+        pair = Pair(address1);
+        address address2 = factory.getPair(address(FRAX), address(USDC), false);
+        pair2 = Pair(address2);
+        address address3 = factory.getPair(address(FRAX), address(DAI), true);
+        pair3 = Pair(address3);
+        assertEq(address(pair), create2address);
+        assertGt(lib.getAmountOut(USDC_1, address(USDC), address(FRAX), true), 0);
+    }
+    function deployPairFactoryAndRouter() public {
+        if( address(factory) != address(0) ) {
+            return;
+        }
+        factory = new PairFactory();
+        assertEq(factory.allPairsLength(), 0);
+        factory.setFee(true, 1); // set fee back to 0.01% for old tests
+        factory.setFee(false, 1);
+        router = new Router(address(factory), address(WETH));
+        router2 = new Router2(address(factory), address(WETH));
+        assertEq(router.factory(), address(factory));
+        lib = new TokenLibrary(address(router));
+    }
+
+    function deployTokenEthPairWithOwner(address _owner) public {
+        TestOwner(_owner).approve(address(FRAX), address(router), TOKEN_1);
+        TestOwner(_owner).approve(address(USDC), address(router), USDC_1);
+        TestOwner(_owner).addLiquidity(payable(address(router)), address(FRAX), address(USDC), true, TOKEN_1, USDC_1, 0, 0, address(owner), block.timestamp);
+        TestOwner(_owner).approve(address(FRAX), address(router), TOKEN_1);
+        TestOwner(_owner).approve(address(USDC), address(router), USDC_1);
+        TestOwner(_owner).addLiquidity(payable(address(router)), address(FRAX), address(USDC), false, TOKEN_1, USDC_1, 0, 0, address(owner), block.timestamp);
+        TestOwner(_owner).approve(address(FRAX), address(router), TOKEN_1);
+        TestOwner(_owner).approve(address(DAI), address(router), TOKEN_1);
+        TestOwner(_owner).addLiquidity(payable(address(router)), address(FRAX), address(DAI), true, TOKEN_1, TOKEN_1, 0, 0, address(owner), block.timestamp);
+
+        uint pairs = address(lp) == address(0) ? 3 : 4;
+        assertEq(factory.allPairsLength(), pairs);
 
         address create2address = router.pairFor(address(FRAX), address(USDC), true);
         address address1 = factory.getPair(address(FRAX), address(USDC), true);
@@ -160,6 +197,57 @@ abstract contract BaseTest is Test, TestOwner {
         TestOwner(_owner).transfer(address(USDC), address(pair), USDC_1);
         TestOwner(_owner).transfer(address(FRAX), address(pair), TOKEN_1);
         TestOwner(_owner).mint(address(pair), _owner);
+    }
+
+    function deployTokenEthPair(uint tokenAmount, uint ethAmount) payable public returns(Pair) {
+        deployPairFactoryAndRouter();
+        token.approve(address(router), tokenAmount);
+        token.mint(address(this), tokenAmount);
+        //console2.log("token balance", token.balanceOf(address(this)));
+        router.addLiquidityETH{value: ethAmount}(address(token), false, tokenAmount, 0, 0, address(this), block.timestamp);
+        Pair _pair = Pair(router.pairFor(address(token), address(WETH), false));
+        return _pair;
+    }
+
+    function deployOracleWithDefaultPair(uint tokenAmount, uint ethAmount) public{
+        if( address(WETH) == address(0) ) {
+            deployCoins();
+        }
+        deployPairFactoryAndRouter();
+        if( address(lp) == address(0) )
+            lp = deployTokenEthPair(tokenAmount, ethAmount);
+        if( address(oracle) == address(0) )
+            oracle = new UniswapV2Oracle(address(lp), address(WETH));
+    }
+
+    function deployOptionsToken() public {
+        if( address(oracle) == address(0) )
+            deployOracleWithDefaultPair(100e18, 100e18);
+        // prevent timestamp calculation problem in the oracle:
+        vm.warp(1686178415);
+        oToken = new Option();
+        oToken.initialize(address(this), ERC20(WETH), IToken(token), IOracle(oracle), address(owner));
+    }
+
+     
+
+    function lpAdd(address to, uint amountToken, uint amountEth) public returns(uint){
+        if( address(WETH) == address(0) ) deployCoins();
+        token.mint(to, amountToken);
+        token.approve(address(router), amountToken);
+        deployPairFactoryAndRouter();
+        (uint _amountToken, uint _amountETH, uint liquidity) =
+            router.addLiquidityETH{value: amountEth}(address(token), false, amountToken,
+                0, 0, to, block.timestamp);
+        if( address(lp) == address(0) ){
+            lp = Pair(router.pairFor(address(token), address(WETH), false));
+        }
+        if( address(oracle) == address(0) )
+            oracle = new UniswapV2Oracle(address(lp), address(WETH));
+
+        _amountToken;
+        _amountETH;
+        return liquidity;
     }
 
     receive() external payable {}

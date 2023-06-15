@@ -15,32 +15,37 @@ contract VotingEscrowTest is BaseTest {
         mintOption(owners, amounts);
 
         VeArtProxy artProxy = new VeArtProxy();
-        escrow = new VotingEscrow(address(token),address(oToken), address(artProxy));
+        escrow = new VotingEscrow(address(lp),address(oToken), address(artProxy));
     }
 
     function testCreateLock() public {
-        oToken.approve(address(escrow), 1e21);
+        uint lpAmount = lpAdd(address(this), 100 * TOKEN_1, 100 * TOKEN_1);
+        lp.approve(address(escrow), lpAmount);
         uint256 lockDuration = 7 * 24 * 3600; // 1 week
 
         // Balance should be zero before and 1 after creating the lock
         assertEq(escrow.balanceOf(address(owner)), 0);
-        escrow.create_lock(1e21, lockDuration);
+        escrow.create_lock(lpAmount, lockDuration);
         assertEq(escrow.ownerOf(1), address(owner));
-        assertEq(escrow.balanceOf(address(owner)), 1);
+        assertEq(escrow.balanceOf(address(owner)), lpAmount);
     }
 
     function testCreateLockOutsideAllowedZones() public {
-        oToken.approve(address(escrow), 1e21);
+        uint lpAmount = lpAdd(address(this), 100 * TOKEN_1, 100 * TOKEN_1);
+        lp.approve(address(escrow), lpAmount);
+
         uint256 oneWeek = 7 * 24 * 3600;
         uint256 fourYears = 4 * 365 * 24 * 3600;
         vm.expectRevert(abi.encodePacked('Voting lock can be 4 years max'));
-        escrow.create_lock(1e21, fourYears + oneWeek);
+        escrow.create_lock(lpAmount, fourYears + oneWeek);
     }
 
     function testWithdraw() public {
-        oToken.approve(address(escrow), 1e21);
+        uint lpAmount = lpAdd(address(this), 100 * TOKEN_1, 100 * TOKEN_1);
+        lp.approve(address(escrow), lpAmount);
+
         uint256 lockDuration = 7 * 24 * 3600; // 1 week
-        escrow.create_lock(1e21, lockDuration);
+        escrow.create_lock(lpAmount, lockDuration);
 
         // Try withdraw early
         uint256 tokenId = 1;
@@ -51,7 +56,7 @@ contract VotingEscrowTest is BaseTest {
         vm.roll(block.number + 1); // mine the next block
         escrow.withdraw(tokenId);
 
-        assertEq(oToken.balanceOf(address(owner)), 1e21);
+        assertEq(lp.balanceOf(address(owner)), lpAmount);
         // Check that the NFT is burnt
         assertEq(escrow.balanceOfNFT(tokenId), 0);
         assertEq(escrow.ownerOf(tokenId), address(0));
@@ -61,9 +66,12 @@ contract VotingEscrowTest is BaseTest {
         // tokenURI should not work for non-existent token ids
         vm.expectRevert(abi.encodePacked("Query for nonexistent token"));
         escrow.tokenURI(999);
-        oToken.approve(address(escrow), 1e21);
+
+        uint lpAmount = lpAdd(address(this), 100 * TOKEN_1, 100 * TOKEN_1);
+        lp.approve(address(escrow), lpAmount);
+
         uint256 lockDuration = 7 * 24 * 3600; // 1 week
-        escrow.create_lock(1e21, lockDuration);
+        escrow.create_lock(lpAmount, lockDuration);
 
         uint256 tokenId = 1;
         vm.warp(block.timestamp + lockDuration);

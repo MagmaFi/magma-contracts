@@ -23,7 +23,7 @@ contract WashTradeTest is BaseTest {
         mintOption(owners, amounts);
 
         VeArtProxy artProxy = new VeArtProxy();
-        escrow = new VotingEscrow(address(token),address(oToken), address(artProxy));
+        escrow = new VotingEscrow(address(lp),address(oToken), address(artProxy));
     }
 
     function createLock() public {

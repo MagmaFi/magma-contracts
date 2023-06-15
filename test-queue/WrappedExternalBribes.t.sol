@@ -30,7 +30,7 @@ contract WrappedExternalBribesTest is BaseTest {
         mintOption(owners, amounts);
         mintLR(owners, amounts);
         VeArtProxy artProxy = new VeArtProxy();
-        escrow = new VotingEscrow(address(token),address(oToken), address(artProxy));
+        escrow = new VotingEscrow(address(lp),address(oToken), address(artProxy));
         deployPairFactoryAndRouter();
         deployPairWithOwner(address(owner));
 

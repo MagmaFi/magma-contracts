@@ -20,16 +20,18 @@ contract KillGaugesTest is BaseTest {
     deployOwners();
     deployCoins();
     mintStables();
+    deployOptionsToken();
     uint256[] memory amounts = new uint256[](3);
     amounts[0] = 2e25;
     amounts[1] = 1e25;
     amounts[2] = 1e25;
     mintOption(owners, amounts);
     VeArtProxy artProxy = new VeArtProxy();
-    escrow = new VotingEscrow(address(token),address(oToken), address(artProxy));
+    escrow = new VotingEscrow(address(lp),address(oToken), address(artProxy));
 
-    oToken.approve(address(escrow), 100 * TOKEN_1);
-    escrow.create_lock(100 * TOKEN_1, 4 * 365 * 86400);
+    uint lpAmount = lpAdd(address(this), 100 * TOKEN_1, 100 * TOKEN_1);
+    lp.approve(address(escrow), lpAmount);
+    escrow.create_lock(lpAmount, 4 * 365 * 86400);
     vm.roll(block.number + 1);
 
     deployPairFactoryAndRouter();

@@ -19,6 +19,8 @@ contract ExternalBribesTest is BaseTest {
         deployOwners();
         deployCoins();
         mintStables();
+        deployOptionsToken();
+
         uint256[] memory amounts = new uint256[](3);
         amounts[0] = 2e25;
         amounts[1] = 1e25;
@@ -26,7 +28,8 @@ contract ExternalBribesTest is BaseTest {
         mintOption(owners, amounts);
         mintLR(owners, amounts);
         VeArtProxy artProxy = new VeArtProxy();
-        escrow = new VotingEscrow(address(token),address(oToken), address(artProxy));
+
+        escrow = new VotingEscrow(address(lp),address(oToken), address(artProxy));
         deployPairFactoryAndRouter();
         deployPairWithOwner(address(owner));
 
@@ -59,17 +62,29 @@ contract ExternalBribesTest is BaseTest {
         bribe = InternalBribe(gauge.internal_bribe());
         xbribe = ExternalBribe(gauge.external_bribe());
 
+        // create LP tokens by adding liquidity to lock:
+
+
+
         // ve
-        oToken.approve(address(escrow), TOKEN_1);
+        uint lpAmount = lpAdd(address(this), TOKEN_1, TOKEN_1);
+        vm.deal(address(this), TOKEN_1);
+        lp.approve(address(escrow), lpAmount);
         escrow.create_lock(TOKEN_1, 4 * 365 * 86400);
+
+        token.addMinter(address(owner2));
         vm.startPrank(address(owner2));
-        oToken.approve(address(escrow), TOKEN_1);
+        vm.deal(address(owner2), TOKEN_1);
+        lpAmount = lpAdd(address(owner2), TOKEN_1, TOKEN_1);
+        lp.approve(address(escrow), lpAmount);
         escrow.create_lock(TOKEN_1, 4 * 365 * 86400);
         vm.warp(block.timestamp + 1);
         vm.stopPrank();
+
     }
 
     function testCanClaimExternalBribe() public {
+
         // fwd half a week
         vm.warp(block.timestamp + 1 weeks / 2);
 
@@ -97,7 +112,8 @@ contract ExternalBribesTest is BaseTest {
         assertEq(post - pre, 0);
 
         // fwd half a week
-        vm.warp(block.timestamp + 1 weeks / 2);
+        // as we set the oracle timestamp, we forward 1 week now.
+        vm.warp(block.timestamp + 1 weeks);
 
         // deliver bribe
         pre = LR.balanceOf(address(owner));
@@ -105,9 +121,11 @@ contract ExternalBribesTest is BaseTest {
         xbribe.getRewardForOwner(1, rewards);
         post = LR.balanceOf(address(owner));
         assertEq(post - pre, TOKEN_1);
+
     }
 
     function testCanClaimExternalBribeProRata() public {
+
         // fwd half a week
         vm.warp(block.timestamp + 1 weeks / 2);
 
@@ -132,7 +150,8 @@ contract ExternalBribesTest is BaseTest {
         rewards[0] = address(LR);
 
         // fwd half a week
-        vm.warp(block.timestamp + 1 weeks / 2);
+        // as we set the oracle timestamp, we forward 1 week now.
+        vm.warp(block.timestamp + 1 weeks );
 
         // deliver bribe
         uint256 pre = LR.balanceOf(address(owner));
@@ -146,9 +165,12 @@ contract ExternalBribesTest is BaseTest {
         xbribe.getRewardForOwner(2, rewards);
         post = LR.balanceOf(address(owner2));
         assertEq(post - pre, TOKEN_1 / 2);
+
     }
 
     function testCanClaimExternalBribeStaggered() public {
+
+
         // fwd half a week
         vm.warp(block.timestamp + 1 weeks / 2);
 
@@ -193,5 +215,6 @@ contract ExternalBribesTest is BaseTest {
         uint256 diff2 = post - pre;
 
         assertEq(diff + diff2, TOKEN_1 - 1); // -1 for rounding
+
     }
 }
