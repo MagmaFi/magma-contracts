@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.13;
+pragma solidity 0.8.17;
 //import "forge-std/console2.sol";
 import 'contracts/libraries/Math.sol';
 import 'contracts/interfaces/IBribe.sol';

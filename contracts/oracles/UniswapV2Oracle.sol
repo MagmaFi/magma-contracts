@@ -8,7 +8,7 @@ import "../interfaces/IBaseV1Pair.sol";
 import "../interfaces/IERC20.sol";
 import "../interfaces/IOracle.sol";
 //import "forge-std/console2.sol";
-pragma solidity 0.8.13;
+pragma solidity 0.8.17;
 
 /// @title Oracle
 /// @notice calculate twap price of solidly pair token0/token1

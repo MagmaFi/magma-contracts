@@ -1,4 +1,4 @@
-pragma solidity 0.8.13;
+pragma solidity 0.8.17;
 
 import "solmate/src/test/utils/mocks/MockERC20.sol";
 import "contracts/Gauge.sol";
