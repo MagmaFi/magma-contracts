@@ -90,6 +90,8 @@ contract VotingEscrow is IERC721, IERC721Metadata, IVotes {
     /// @notice Contract constructor
     /// @param token_addr `OPTION` token address
     constructor(address token_addr, address option_addr, address art_proxy) {
+        require( token_addr != address(0), "Invalid token address" );
+        require( option_addr != address(0), "Invalid option address" );
         token = token_addr;
         option = option_addr;
         voter = msg.sender;

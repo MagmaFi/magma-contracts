@@ -15,8 +15,10 @@ contract VotingEscrowTest is BaseTest {
         mintOption(owners, amounts);
 
         VeArtProxy artProxy = new VeArtProxy();
+        lpAdd(address(this), 100 * TOKEN_1, 100 * TOKEN_1);
         escrow = new VotingEscrow(address(lp),address(oToken), address(artProxy));
     }
+
 
     function testCreateLock() public {
         uint lpAmount = lpAdd(address(this), 100 * TOKEN_1, 100 * TOKEN_1);
@@ -27,7 +29,7 @@ contract VotingEscrowTest is BaseTest {
         assertEq(escrow.balanceOf(address(owner)), 0);
         escrow.create_lock(lpAmount, lockDuration);
         assertEq(escrow.ownerOf(1), address(owner));
-        assertEq(escrow.balanceOf(address(owner)), lpAmount);
+        assertEq(escrow.balanceOf(address(owner)), 1);
     }
 
     function testCreateLockOutsideAllowedZones() public {
@@ -40,7 +42,9 @@ contract VotingEscrowTest is BaseTest {
         escrow.create_lock(lpAmount, fourYears + oneWeek);
     }
 
+
     function testWithdraw() public {
+        uint before = lp.balanceOf(address(owner));
         uint lpAmount = lpAdd(address(this), 100 * TOKEN_1, 100 * TOKEN_1);
         lp.approve(address(escrow), lpAmount);
 
@@ -56,11 +60,12 @@ contract VotingEscrowTest is BaseTest {
         vm.roll(block.number + 1); // mine the next block
         escrow.withdraw(tokenId);
 
-        assertEq(lp.balanceOf(address(owner)), lpAmount);
+        assertEq(lp.balanceOf(address(owner)), lpAmount + before);
         // Check that the NFT is burnt
         assertEq(escrow.balanceOfNFT(tokenId), 0);
         assertEq(escrow.ownerOf(tokenId), address(0));
     }
+
 
     function testCheckTokenURICalls() public {
         // tokenURI should not work for non-existent token ids
@@ -88,6 +93,7 @@ contract VotingEscrowTest is BaseTest {
         escrow.tokenURI(tokenId);
     }
 
+
     function testConfirmSupportsInterfaceWorksWithAssertedInterfaces() public {
         // Check that it supports all the asserted interfaces.
         bytes4 ERC165_INTERFACE_ID = 0x01ffc9a7;
@@ -103,4 +109,5 @@ contract VotingEscrowTest is BaseTest {
         bytes4 ERC721_FAKE = 0x780e9d61;
         assertFalse(escrow.supportsInterface(ERC721_FAKE));
     }
+
 }

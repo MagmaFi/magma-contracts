@@ -158,6 +158,7 @@ abstract contract BaseTest is Test, TestOwner {
         if( address(factory) != address(0) ) {
             return;
         }
+        //console2.log("deployPairFactoryAndRouter");
         factory = new PairFactory();
         assertEq(factory.allPairsLength(), 0);
         factory.setFee(true, 1); // set fee back to 0.01% for old tests
@@ -229,13 +230,20 @@ abstract contract BaseTest is Test, TestOwner {
         oToken.initialize(address(this), ERC20(WETH), IToken(token), IOracle(oracle), address(owner));
     }
 
-     
+
 
     function lpAdd(address to, uint amountToken, uint amountEth) public returns(uint){
-        if( address(WETH) == address(0) ) deployCoins();
-        token.mint(to, amountToken);
-        token.approve(address(router), amountToken);
+        if( address(WETH) == address(0) || address(token) == address(0) ){
+            //console2.log('deployCoins');
+            deployCoins();
+        }
         deployPairFactoryAndRouter();
+        //console2.log('lpAdd to=%s', to);
+        token.mint(to, amountToken);
+        vm.prank(to);
+        token.approve(address(router), amountToken);
+        require(token.balanceOf(to) >= amountToken, "- not enough token balance");
+        require(address(to).balance >= amountEth, "- not enough eth balance");
         (uint _amountToken, uint _amountETH, uint liquidity) =
             router.addLiquidityETH{value: amountEth}(address(token), false, amountToken,
                 0, 0, to, block.timestamp);
