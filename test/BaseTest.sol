@@ -64,8 +64,10 @@ abstract contract BaseTest is Test, TestOwner {
     // store token/weth pair when adding liquidity:
     Pair lp;
     UniswapV2Oracle oracle;
-    
+
+    address DEAD;
     function deployOwners() public {
+        DEAD = makeAddr("DEAD");
         owner = TestOwner(address(this));
         owner2 = new TestOwner();
         owner3 = new TestOwner();
@@ -224,9 +226,9 @@ abstract contract BaseTest is Test, TestOwner {
 
     function deployOptionsToken() public {
         if( address(oracle) == address(0) )
-            deployOracleWithDefaultPair(100e18, 100e18);
+            deployOracleWithDefaultPair(1e18, 1e18);
         // prevent timestamp calculation problem in the oracle:
-        vm.warp(1686178415);
+        vm.warp( 365 days * 53 );
         oToken = new Option();
         oToken.initialize(address(this), ERC20(WETH), IToken(token), IOracle(oracle), address(owner));
     }
@@ -253,6 +255,7 @@ abstract contract BaseTest is Test, TestOwner {
         if( address(lp) == address(0) ){
             lp = Pair(router.pairFor(address(token), address(WETH), false));
         }
+
         if( address(oracle) == address(0) )
             oracle = new UniswapV2Oracle(address(lp), address(WETH));
 
