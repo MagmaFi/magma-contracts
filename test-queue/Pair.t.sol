@@ -33,6 +33,7 @@ contract PairTest is BaseTest {
         mintLR(owners, amounts);
 
         VeArtProxy artProxy = new VeArtProxy();
+        deployTokenEthPair(0, 0);;
         escrow = new VotingEscrow(address(lp),address(oToken), address(artProxy));
     }
 

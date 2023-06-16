@@ -15,7 +15,7 @@ contract VotingEscrowTest is BaseTest {
         mintOption(owners, amounts);
 
         VeArtProxy artProxy = new VeArtProxy();
-        lpAdd(address(this), 100 * TOKEN_1, 100 * TOKEN_1);
+        lp = Pair(factory.createPair(address(token), address(WETH), false));
         escrow = new VotingEscrow(address(lp),address(oToken), address(artProxy));
     }
 

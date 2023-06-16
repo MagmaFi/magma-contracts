@@ -27,6 +27,7 @@ contract KillGaugesTest is BaseTest {
     amounts[2] = 1e25;
     mintOption(owners, amounts);
     VeArtProxy artProxy = new VeArtProxy();
+    lp = Pair(factory.createPair(address(token), address(WETH), false));
     escrow = new VotingEscrow(address(lp),address(oToken), address(artProxy));
 
     uint lpAmount = lpAdd(address(this), 100 * TOKEN_1, 100 * TOKEN_1);

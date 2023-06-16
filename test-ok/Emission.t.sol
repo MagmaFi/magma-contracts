@@ -82,6 +82,7 @@ contract Emission is Test {
         oracle = new UniswapV2Oracle(tokenEth, address(WETH));
         oToken = new Option();
 
+        lp = Pair(factory.createPair(address(token), address(WETH), false));
         escrow = new VotingEscrow(tokenEth, address(oToken), address(artProxy));
         distributor = new RewardsDistributor(address(escrow));
         voter = new Voter(address(escrow), address(pairFactory), address(gaugeFactory), address(bribeFactory));

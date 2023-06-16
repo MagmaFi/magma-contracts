@@ -202,12 +202,13 @@ abstract contract BaseTest is Test, TestOwner {
 
     function deployTokenEthPair(uint tokenAmount, uint ethAmount) payable public returns(Pair) {
         deployPairFactoryAndRouter();
-        token.approve(address(router), tokenAmount);
-        token.mint(address(this), tokenAmount);
-        //console2.log("token balance", token.balanceOf(address(this)));
-        router.addLiquidityETH{value: ethAmount}(address(token), false, tokenAmount, 0, 0, address(this), block.timestamp);
-        Pair _pair = Pair(router.pairFor(address(token), address(WETH), false));
-        return _pair;
+        if( tokenAmount > 0 && ethAmount > 0 ) {
+            token.approve(address(router), tokenAmount);
+            token.mint(address(this), tokenAmount);
+            router.addLiquidityETH{value: ethAmount}(address(token), false, tokenAmount, 0, 0, address(this), block.timestamp);
+        }
+        lp = Pair(router.pairFor(address(token), address(WETH), false));
+        return lp;
     }
 
     function deployOracleWithDefaultPair(uint tokenAmount, uint ethAmount) public{
@@ -244,6 +245,8 @@ abstract contract BaseTest is Test, TestOwner {
         token.approve(address(router), amountToken);
         require(token.balanceOf(to) >= amountToken, "- not enough token balance");
         require(address(to).balance >= amountEth, "- not enough eth balance");
+        // create pair:
+
         (uint _amountToken, uint _amountETH, uint liquidity) =
             router.addLiquidityETH{value: amountEth}(address(token), false, amountToken,
                 0, 0, to, block.timestamp);

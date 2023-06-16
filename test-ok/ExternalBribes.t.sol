@@ -29,6 +29,7 @@ contract ExternalBribesTest is BaseTest {
         mintLR(owners, amounts);
         VeArtProxy artProxy = new VeArtProxy();
 
+        lp = Pair(factory.createPair(address(token), address(WETH), false));
         escrow = new VotingEscrow(address(lp),address(oToken), address(artProxy));
         deployPairFactoryAndRouter();
         deployPairWithOwner(address(owner));

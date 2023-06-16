@@ -57,7 +57,7 @@ contract EQUILIBRE_MULTICALL {
     }
 
     function getCurrentBlockDifficulty() public view returns (uint256 difficulty) {
-        difficulty = block.prevrandao;
+        difficulty = block.difficulty;
     }
 
     function getCurrentBlockGasLimit() public view returns (uint256 gaslimit) {

@@ -19,26 +19,32 @@ contract ImbalanceTest is BaseTest {
         amounts[0] = 1e25;
         mintOption(owners, amounts);
         VeArtProxy artProxy = new VeArtProxy();
+
+        deployTokenEthPair(0, 0);
         escrow = new VotingEscrow(address(lp),address(oToken), address(artProxy));
     }
 
     function createLock() public {
         deployBaseCoins();
 
-        oToken.approve(address(escrow), TOKEN_1);
-        escrow.create_lock(TOKEN_1, 4 * 365 * 86400);
+        uint amount = lpAdd(address(this), 100 * TOKEN_1, 100 * TOKEN_1);
+        lp.approve(address(escrow), amount);
+        escrow.create_lock(amount, 4 * 365 * 86400);
         vm.warp(1);
         assertGt(escrow.balanceOfNFT(1), 995063075414519385);
-        assertEq(oToken.balanceOf(address(escrow)), TOKEN_1);
+        assertEq(lp.balanceOf(address(escrow)), amount);
     }
 
     function votingEscrowMerge() public {
         createLock();
+        uint depositAmount = 100 * TOKEN_1;
+        uint balanceBefore = lp.balanceOf(address(escrow));
+        uint amount = lpAdd(address(this), depositAmount, depositAmount);
+        lp.approve(address(escrow), amount);
 
-        oToken.approve(address(escrow), TOKEN_1);
-        escrow.create_lock(TOKEN_1, 4 * 365 * 86400);
+        escrow.create_lock(amount, 4 * 365 * 86400);
         assertGt(escrow.balanceOfNFT(2), 995063075414519385);
-        assertEq(oToken.balanceOf(address(escrow)), 2 * TOKEN_1);
+        assertEq(lp.balanceOf(address(escrow)), amount + balanceBefore);
         escrow.merge(2, 1);
         assertGt(escrow.balanceOfNFT(1), 1990039602248405587);
         assertEq(escrow.balanceOfNFT(2), 0);
@@ -107,6 +113,7 @@ contract ImbalanceTest is BaseTest {
         uint256 total = pair3.balanceOf(address(owner));
         pair3.approve(address(gauge3), total);
         gauge3.deposit(total, 0);
+
         assertEq(gauge3.totalSupply(), total);
         assertEq(gauge3.earned(address(escrow), address(owner)), 0);
     }
