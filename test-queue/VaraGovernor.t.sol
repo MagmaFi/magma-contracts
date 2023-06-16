@@ -25,7 +25,7 @@ contract TokenGovernorTest is BaseTest {
         mintOption(owners, amounts);
 
         VeArtProxy artProxy = new VeArtProxy();
-        deployTokenEthPair(0, 0);;
+        deployTokenEthPair(0, 0);
         escrow = new VotingEscrow(address(lp),address(oToken), address(artProxy));
 
         oToken.approve(address(escrow), 97 * TOKEN_1);

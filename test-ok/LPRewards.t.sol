@@ -21,10 +21,12 @@ contract LPRewardsTest is BaseTest {
 
         // give owner1 veoToken
         VeArtProxy artProxy = new VeArtProxy();
-        deployTokenEthPair(0, 0);;
+        deployTokenEthPair(0, 0);
         escrow = new VotingEscrow(address(lp),address(oToken), address(artProxy));
-        oToken.approve(address(escrow), TOKEN_1M);
-        escrow.create_lock(TOKEN_1M, 4 * 365 * 86400);
+
+        uint amount = lpAdd(address(this), 100 * TOKEN_1, 100 * TOKEN_1);
+        lp.approve(address(escrow), amount);
+        escrow.create_lock(amount, 4 * 365 * 86400);
 
         deployPairFactoryAndRouter();
         deployPairWithOwner(address(owner));

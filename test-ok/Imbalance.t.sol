@@ -37,9 +37,8 @@ contract ImbalanceTest is BaseTest {
 
     function votingEscrowMerge() public {
         createLock();
-        uint depositAmount = 100 * TOKEN_1;
         uint balanceBefore = lp.balanceOf(address(escrow));
-        uint amount = lpAdd(address(this), depositAmount, depositAmount);
+        uint amount = lpAdd(address(this), 100 * TOKEN_1, 100 * TOKEN_1);
         lp.approve(address(escrow), amount);
 
         escrow.create_lock(amount, 4 * 365 * 86400);
