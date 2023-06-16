@@ -46,7 +46,7 @@ contract OptionVotingTest is BaseTest {
         distributor = new RewardsDistributor(address(escrow));
         escrow.setVoter(address(voter));
 
-        minter = new Minter(
+        minter = new Minter(address(token), (
             address(voter),
             address(escrow),
             address(distributor)

@@ -86,7 +86,7 @@ contract Emission is Test {
         escrow = new VotingEscrow(tokenEth, address(oToken), address(artProxy));
         distributor = new RewardsDistributor(address(escrow));
         voter = new Voter(address(escrow), address(pairFactory), address(gaugeFactory), address(bribeFactory));
-        minter = new Minter(address(voter), address(escrow), address(distributor));
+        minter = new Minter(address(token), address(voter), address(escrow), address(distributor));
         governor = new TokenGovernor(escrow);
 
         // allow minter to mint options:

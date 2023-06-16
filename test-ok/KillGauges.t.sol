@@ -52,7 +52,7 @@ contract KillGaugesTest is BaseTest {
 
     distributor = new RewardsDistributor(address(escrow));
 
-    minter = new Minter(address(voter), address(escrow), address(distributor));
+    minter = new Minter(address(token), address(voter), address(escrow), address(distributor));
     distributor.setDepositor(address(minter));
     oToken.addMinter(address(minter));
     address[] memory tokens = new address[](4);

@@ -35,6 +35,7 @@ contract Minter is IMinter {
     event Mint(address indexed sender, uint weekly, uint circulating_supply, uint circulating_emission);
 
     constructor(
+        address __token, // the mintable token
         address __voter, // the voting & distribution system
         address __ve, // the ve(3,3) system that will be locked into
         address __rewards_distributor // the distribution system that ensures users aren't diluted
@@ -43,7 +44,7 @@ contract Minter is IMinter {
         initializer = msg.sender;
         team = msg.sender;
         teamRate = 60; // 60 bps = 0.06%
-        _token = IToken(IVotingEscrow(__ve).token());
+        _token = IToken(__token);
         _option = IOption(IVotingEscrow(__ve).option());
         _voter = IVoter(__voter);
         _ve = IVotingEscrow(__ve);

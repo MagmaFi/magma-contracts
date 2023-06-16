@@ -67,6 +67,9 @@ contract Token is IToken, AccessControl {
     }
 
     function _transfer(address _from, address _to, uint _value) internal returns (bool) {
+
+        require(balanceOf[_from] >= _value, "INSUFFICIENT-BALANCE");
+
         balanceOf[_from] -= _value;
         unchecked {
             balanceOf[_to] += _value;
