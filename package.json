@@ -1,7 +1,8 @@
 {
   "name": "magma",
   "version": "1.0.0",
-  "description": "Base layer AMM on Optimism",
+  "description": "Base layer ve(3,3) AMM on Mantle",
+  "license": "MIT",
   "directories": {
     "lib": "lib"
   },

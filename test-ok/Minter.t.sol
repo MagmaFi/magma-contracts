@@ -24,8 +24,7 @@ contract MinterTest is BaseTest {
         VeArtProxy artProxy = new VeArtProxy();
         deployTokenEthPair(0, 0);
         escrow = new VotingEscrow(address(lp),address(oToken), address(artProxy));
-        factory = new PairFactory();
-        router = new Router(address(factory), address(owner));
+
         gaugeFactory = new GaugeFactory();
         bribeFactory = new BribeFactory();
         voter = new Voter(address(escrow), address(factory), address(gaugeFactory), address(bribeFactory));
@@ -34,8 +33,10 @@ contract MinterTest is BaseTest {
         tokens[0] = address(FRAX);
         tokens[1] = address(oToken);
         voter.initialize(tokens, address(owner));
-        oToken.approve(address(escrow), TOKEN_1);
-        escrow.create_lock(TOKEN_1, 4 * 365 * 86400);
+
+        uint amount = lpAdd(address(this), 100 * TOKEN_1, 100 * TOKEN_1);
+        lp.approve(address(escrow), amount);
+        escrow.create_lock(amount, 4 * 365 * 86400);
         distributor = new RewardsDistributor(address(escrow));
         escrow.setVoter(address(voter));
 
@@ -53,7 +54,7 @@ contract MinterTest is BaseTest {
         voter.createGauge(pair);
         vm.roll(block.number + 1); // fwd 1 block because escrow.balanceOfNFT() returns 0 in same block
         assertGt(escrow.balanceOfNFT(1), 995063075414519385);
-        assertEq(oToken.balanceOf(address(escrow)), TOKEN_1);
+        assertEq(lp.balanceOf(address(escrow)), amount);
 
         address[] memory pools = new address[](1);
         pools[0] = pair;
@@ -64,16 +65,15 @@ contract MinterTest is BaseTest {
 
     function initializeVotingEscrow() public {
         deployBase();
-
+        // we don't create veNFT anymore.
         address[] memory claimants = new address[](1);
         claimants[0] = address(owner);
         uint256[] memory amounts = new uint256[](1);
         amounts[0] = TOKEN_1M;
+        uint balanceBefore = oToken.balanceOf(address(owner));
         minter.initialize(claimants, amounts);
-        assertEq(escrow.ownerOf(2), address(owner));
-        assertEq(escrow.ownerOf(3), address(0));
+        assertEq(oToken.balanceOf(address(owner)), TOKEN_1M + balanceBefore );
         vm.roll(block.number + 1);
-        assertEq(oToken.balanceOf(address(minter)), 19 * TOKEN_1M);
     }
 
     function testMinterWeeklyDistribute() public {
@@ -89,42 +89,8 @@ contract MinterTest is BaseTest {
         vm.warp(block.timestamp + 86400 * 7);
         vm.roll(block.number + 1);
         minter.update_period();
+        // we disabled rebase
         uint256 claimable = distributor.claimable(1);
-        assertGt(claimable, 32141062267140);
-        distributor.claim(1);
-        assertEq(distributor.claimable(1), 0);
-
-        uint256 weekly = minter.weekly();
-        console2.log(weekly);
-        console2.log(oToken.totalSupply());
-        console2.log(escrow.totalSupply());
-
-        vm.warp(block.timestamp + 86400 * 7);
-        vm.roll(block.number + 1);
-        minter.update_period();
-        console2.log(distributor.claimable(1));
-        distributor.claim(1);
-        vm.warp(block.timestamp + 86400 * 7);
-        vm.roll(block.number + 1);
-        minter.update_period();
-        console2.log(distributor.claimable(1));
-        uint256[] memory tokenIds = new uint256[](1);
-        tokenIds[0] = 1;
-        distributor.claim_many(tokenIds);
-        vm.warp(block.timestamp + 86400 * 7);
-        vm.roll(block.number + 1);
-        minter.update_period();
-        console2.log(distributor.claimable(1));
-        distributor.claim(1);
-        vm.warp(block.timestamp + 86400 * 7);
-        vm.roll(block.number + 1);
-        minter.update_period();
-        console2.log(distributor.claimable(1));
-        distributor.claim_many(tokenIds);
-        vm.warp(block.timestamp + 86400 * 7);
-        vm.roll(block.number + 1);
-        minter.update_period();
-        console2.log(distributor.claimable(1));
-        distributor.claim(1);
+        assertEq(claimable, 0);
     }
 }
