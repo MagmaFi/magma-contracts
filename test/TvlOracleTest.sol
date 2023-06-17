@@ -7,8 +7,8 @@ import "contracts/Token.sol";
 contract TvlOracleTest is BaseTest {
     uint TOKEN_100 = 100 * 1e18;
     uint TOKEN_100e6 = 100 * 1e6;
-    TvlOracle oracle;
-    TvlOracle oracle_magma;
+    TvlOracle tvlOracle;
+    TvlOracle tvlOracle_magma;
     Pair poolOption;
     function setUp() public {
         deployCoins();
@@ -30,10 +30,10 @@ contract TvlOracleTest is BaseTest {
         poolOption = Pair(factory.getPair(address(USDC), address(oToken), false));
 
         address[3] memory uwl = [address(USDC), address(WETH), address(pair)];
-        oracle = new TvlOracle(uwl, 6);
+        tvlOracle = new TvlOracle(uwl, 6);
 
         address[3] memory uwl_magma = [address(USDC), address(oToken), address(poolOption)];
-        oracle_magma = new TvlOracle(uwl_magma, 6);
+        tvlOracle_magma = new TvlOracle(uwl_magma, 6);
 
     }
 
@@ -42,10 +42,10 @@ contract TvlOracleTest is BaseTest {
         routes[0] = Router.route(address(WETH), address(USDC), false);
         router2.swapExactETHForTokensSupportingFeeOnTransferTokens{value: TOKEN_1}(0, routes, address(this), block.timestamp);
 
-        uint price_eth = oracle.p_t_coin_usd(address(pair));
+        uint price_eth = tvlOracle.p_t_coin_usd(address(pair));
         console2.log('eth/usdc price', price_eth);
 
-        uint price_magma = oracle.p_t_coin_usd(address(poolOption));
+        uint price_magma = tvlOracle.p_t_coin_usd(address(poolOption));
         console2.log('magma/usdc price', price_magma);
 
     }

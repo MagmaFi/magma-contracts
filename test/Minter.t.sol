@@ -23,7 +23,7 @@ contract MinterTest is BaseTest {
 
         VeArtProxy artProxy = new VeArtProxy();
         deployTokenEthPair(0, 0);
-        escrow = new VotingEscrow(address(lp),address(oToken), address(artProxy));
+        escrow = new VotingEscrow(address(lp), address(oToken), address(artProxy));
 
         gaugeFactory = new GaugeFactory();
         bribeFactory = new BribeFactory();
@@ -40,7 +40,7 @@ contract MinterTest is BaseTest {
         distributor = new RewardsDistributor(address(escrow));
         escrow.setVoter(address(voter));
 
-        minter = new Minter(address(voter), address(escrow), address(distributor));
+        minter = new Minter(address(token), address(voter), address(escrow), address(distributor));
         distributor.setDepositor(address(minter));
         oToken.addMinter(address(minter));
 
@@ -72,7 +72,7 @@ contract MinterTest is BaseTest {
         amounts[0] = TOKEN_1M;
         uint balanceBefore = oToken.balanceOf(address(owner));
         minter.initialize(claimants, amounts);
-        assertEq(oToken.balanceOf(address(owner)), TOKEN_1M + balanceBefore );
+        assertEq(oToken.balanceOf(address(owner)), TOKEN_1M + balanceBefore);
         vm.roll(block.number + 1);
     }
 

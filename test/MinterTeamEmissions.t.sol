@@ -25,7 +25,7 @@ contract MinterTeamEmissions is BaseTest {
         team = new TestOwner();
         VeArtProxy artProxy = new VeArtProxy();
         deployTokenEthPair(0, 0);
-        escrow = new VotingEscrow(address(lp),address(oToken), address(artProxy));
+        escrow = new VotingEscrow(address(lp), address(oToken), address(artProxy));
         gaugeFactory = new GaugeFactory();
         bribeFactory = new BribeFactory();
         voter = new Voter(
@@ -46,12 +46,7 @@ contract MinterTeamEmissions is BaseTest {
         distributor = new RewardsDistributor(address(escrow));
         escrow.setVoter(address(voter));
 
-        minter = new Minter(
-            address(token),
-            address(voter),
-            address(escrow),
-            address(distributor)
-        );
+        minter = new Minter(address(token), address(voter), address(escrow), address(distributor));
         // enable team emission for testing:
         minter.setTeamEmissionsActive(true);
         distributor.setDepositor(address(minter));
@@ -154,7 +149,7 @@ contract MinterTeamEmissions is BaseTest {
         // rate is right even when token is sent to Minter contract
         vm.warp(block.timestamp + 86400 * 7);
         vm.roll(block.number + 1);
-        team.transfer(address(token), address(minter), token.balanceOf(address(team)) );
+        team.transfer(address(token), address(minter), token.balanceOf(address(team)));
         beforeTeamSupply = token.balanceOf(address(team));
         weekly = minter.weekly_emission();
         minter.update_period(); // new period

@@ -28,21 +28,24 @@ contract StakingTest is BaseTest {
     function createLock() public {
         deployBaseCoins();
 
-        oToken.approve(address(escrow), TOKEN_1);
-        escrow.create_lock(TOKEN_1, 4 * 365 * 86400);
+        uint lpAmount = lpAdd(address(this), TOKEN_1, TOKEN_1);
+        lp.approve(address(stake), lpAmount);
+        escrow.create_lock(lpAmount, 4 * 365 * 86400);
     }
 
     function createLock2() public {
         createLock();
 
-        owner2.approve(address(oToken), address(escrow), TOKEN_1);
-        owner2.create_lock(address(escrow), TOKEN_1, 4 * 365 * 86400);
+        uint lpAmount = lpAdd(address(owner2), TOKEN_1, TOKEN_1);
+        owner2.approve(address(lp), address(escrow), lpAmount);
+        owner2.create_lock(address(escrow), lpAmount, 4 * 365 * 86400);
     }
 
     function createLock3() public {
         createLock2();
 
-        owner3.approve(address(oToken), address(escrow), TOKEN_1);
+        uint lpAmount = lpAdd(address(owner3), TOKEN_1, TOKEN_1);
+        owner3.approve(address(lp), address(escrow), lpAmount);
         owner3.create_lock(address(escrow), TOKEN_1, 4 * 365 * 86400);
     }
 

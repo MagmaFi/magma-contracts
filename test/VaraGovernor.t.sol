@@ -28,14 +28,20 @@ contract TokenGovernorTest is BaseTest {
         deployTokenEthPair(0, 0);
         escrow = new VotingEscrow(address(lp),address(oToken), address(artProxy));
 
-        oToken.approve(address(escrow), 97 * TOKEN_1);
-        escrow.create_lock(97 * TOKEN_1, 4 * 365 * 86400);
+        // owner1 owns more than quorum, 97%
+        uint lpAmount = lpAdd(address(this), 97 * TOKEN_1, 97 * TOKEN_1);
+        lp.approve(address(escrow), lpAmount);
+        escrow.create_lock(lpAmount, 4 * 365 * 86400);
         vm.roll(block.number + 1);
 
         // owner2 owns less than quorum, 3%
+        lpAmount = lpAdd(address(owner2), 3 * TOKEN_1, 3 * TOKEN_1);
         vm.startPrank(address(owner2));
-        oToken.approve(address(escrow), 3 * TOKEN_1);
-        escrow.create_lock(3 * TOKEN_1, 4 * 365 * 86400);
+        lp.approve(address(escrow), lpAmount);
+
+        vm.startPrank(address(owner2));
+        escrow.create_lock(lpAmount, 4 * 365 * 86400);
+
         vm.roll(block.number + 1);
         vm.stopPrank();
 
@@ -92,9 +98,14 @@ contract TokenGovernorTest is BaseTest {
 
     function testVeOptionMergesAutoDelegates() public {
         // owner2 + owner3 > quorum
+
+        uint lpAmount = lpAdd(address(owner3), 3 * TOKEN_1, 3 * TOKEN_1);
         vm.startPrank(address(owner3));
-        oToken.approve(address(escrow), 3 * TOKEN_1);
-        escrow.create_lock(3 * TOKEN_1, 4 * 365 * 86400);
+        lp.approve(address(escrow), lpAmount);
+
+        vm.startPrank(address(owner3));
+        escrow.create_lock(lpAmount, 4 * 365 * 86400);
+
         vm.roll(block.number + 1);
         uint256 pre2 = escrow.getVotes(address(owner2));
         uint256 pre3 = escrow.getVotes(address(owner3));

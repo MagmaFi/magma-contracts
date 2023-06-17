@@ -1,21 +1,17 @@
 pragma solidity 0.8.17;
 
 import './BaseTest.sol';
-import "contracts/WrappedExternalBribe.sol";
-import "contracts/factories/WrappedExternalBribeFactory.sol";
 
-contract WrappedExternalBribesTest is BaseTest {
+contract ExternalBribesTest is BaseTest {
     VotingEscrow escrow;
     GaugeFactory gaugeFactory;
     BribeFactory bribeFactory;
-    WrappedExternalBribeFactory wxbribeFactory;
     Voter voter;
     RewardsDistributor distributor;
     Minter minter;
     Gauge gauge;
     InternalBribe bribe;
     ExternalBribe xbribe;
-    WrappedExternalBribe wxbribe;
 
     function setUp() public {
         vm.warp(block.timestamp + 1 weeks); // put some initial time in
@@ -23,6 +19,8 @@ contract WrappedExternalBribesTest is BaseTest {
         deployOwners();
         deployCoins();
         mintStables();
+        deployOptionsToken();
+
         uint256[] memory amounts = new uint256[](3);
         amounts[0] = 2e25;
         amounts[1] = 1e25;
@@ -30,8 +28,9 @@ contract WrappedExternalBribesTest is BaseTest {
         mintOption(owners, amounts);
         mintLR(owners, amounts);
         VeArtProxy artProxy = new VeArtProxy();
-        deployTokenEthPair(0, 0);
-        escrow = new VotingEscrow(address(lp),address(oToken), address(artProxy));
+
+        lp = Pair(factory.getPair(address(token), address(WETH), false));
+        escrow = new VotingEscrow(address(lp), address(oToken), address(artProxy));
         deployPairFactoryAndRouter();
         deployPairWithOwner(address(owner));
 
@@ -39,7 +38,6 @@ contract WrappedExternalBribesTest is BaseTest {
         gaugeFactory = new GaugeFactory();
         bribeFactory = new BribeFactory();
         voter = new Voter(address(escrow), address(factory), address(gaugeFactory), address(bribeFactory));
-        wxbribeFactory = new WrappedExternalBribeFactory(address(voter));
 
         escrow.setVoter(address(voter));
 
@@ -64,24 +62,41 @@ contract WrappedExternalBribesTest is BaseTest {
         gauge = Gauge(voter.createGauge(address(pair)));
         bribe = InternalBribe(gauge.internal_bribe());
         xbribe = ExternalBribe(gauge.external_bribe());
-        wxbribe = WrappedExternalBribe(wxbribeFactory.createBribe(address(xbribe)));
+
+        // create LP tokens by adding liquidity to lock:
+
+
 
         // ve
-        oToken.approve(address(escrow), TOKEN_1);
-        escrow.create_lock(TOKEN_1, 4 * 365 * 86400);
-        vm.startPrank(address(owner2));
-        oToken.approve(address(escrow), TOKEN_1);
-        escrow.create_lock(TOKEN_1, 4 * 365 * 86400);
+        uint lpAmount = lpAdd(address(this), TOKEN_1, TOKEN_1);
+        vm.deal(address(this), TOKEN_1);
+        lp.approve(address(escrow), lpAmount);
+        escrow.create_lock(lpAmount, 4 * 365 * 86400);
+
+        token.addMinter(address(owner2));
+
+        vm.prank(address(owner2));
+        lpAmount = lpAdd(address(owner2), TOKEN_1, TOKEN_1);
+
+        vm.prank(address(owner2));
+        lp.approve(address(escrow), lpAmount);
+
+        vm.prank(address(owner2));
+        escrow.create_lock(lpAmount, 4 * 365 * 86400);
         vm.warp(block.timestamp + 1);
-        vm.stopPrank();
+
+
     }
 
-    function testOldBribesAreBroken() public {
+    function testCanClaimExternalBribe() public {
+
+        // fwd half a week
         vm.warp(block.timestamp + 1 weeks / 2);
 
         // create a bribe
         LR.approve(address(xbribe), TOKEN_1);
         xbribe.notifyRewardAmount(address(LR), TOKEN_1);
+        assertEq(LR.balanceOf(address(xbribe)), TOKEN_1, "@a");
 
         // vote
         address[] memory pools = new address[](1);
@@ -89,39 +104,40 @@ contract WrappedExternalBribesTest is BaseTest {
         uint256[] memory weights = new uint256[](1);
         weights[0] = 10000;
         voter.vote(1, pools, weights);
-
-        vm.startPrank(address(owner2));
-        voter.vote(2, pools, weights);
-        vm.stopPrank();
-
-        // fwd half a week
-        vm.warp(block.timestamp + 1 weeks / 2);
-
-        uint256 pre = LR.balanceOf(address(owner));
-        uint256 earned = xbribe.earned(address(LR), 1);
-        assertEq(earned, TOKEN_1 / 2);
 
         // rewards
         address[] memory rewards = new address[](1);
         rewards[0] = address(LR);
 
-        vm.startPrank(address(voter));
-        // once
+        // cannot claim
+        uint256 pre = LR.balanceOf(address(owner));
+        vm.prank(address(voter));
         xbribe.getRewardForOwner(1, rewards);
-        // twice
-        xbribe.getRewardForOwner(1, rewards);
-        vm.stopPrank();
-
         uint256 post = LR.balanceOf(address(owner));
-        assertEq(post - pre, TOKEN_1/2 );
+        assertEq(post - pre, 0, "@b");
+
+        // fwd half a week
+        // as we set the oracle timestamp, we forward 1 week now.
+        vm.warp(block.timestamp + 1 weeks);
+
+        // deliver bribe
+        pre = LR.balanceOf(address(owner));
+        vm.prank(address(voter));
+        xbribe.getRewardForOwner(1, rewards);
+        post = LR.balanceOf(address(owner));
+        assertEq(post - pre, TOKEN_1, "@c");
+
     }
 
-    function testWrappedBribesCanClaimOnlyOnce() public {
+    function testCanClaimExternalBribeProRata() public {
+
+        // fwd half a week
         vm.warp(block.timestamp + 1 weeks / 2);
 
         // create a bribe
-        LR.approve(address(wxbribe), TOKEN_1);
-        wxbribe.notifyRewardAmount(address(LR), TOKEN_1);
+        LR.approve(address(xbribe), TOKEN_1);
+        xbribe.notifyRewardAmount(address(LR), TOKEN_1);
+        assertEq(LR.balanceOf(address(xbribe)), TOKEN_1, "@d");
 
         // vote
         address[] memory pools = new address[](1);
@@ -133,37 +149,40 @@ contract WrappedExternalBribesTest is BaseTest {
         vm.startPrank(address(owner2));
         voter.vote(2, pools, weights);
         vm.stopPrank();
-
-        // fwd half a week
-        vm.warp(block.timestamp + 1 weeks / 2);
-
-        uint256 pre = LR.balanceOf(address(owner));
-        uint256 earned = wxbribe.earned(address(LR), 1);
-        assertEq(earned, TOKEN_1 / 2);
 
         // rewards
         address[] memory rewards = new address[](1);
         rewards[0] = address(LR);
 
-        vm.startPrank(address(voter));
-        // once
-        wxbribe.getRewardForOwner(1, rewards);
-        uint256 post = LR.balanceOf(address(owner));
-        // twice
-        wxbribe.getRewardForOwner(1, rewards);
-        vm.stopPrank();
+        // fwd half a week
+        // as we set the oracle timestamp, we forward 1 week now.
+        vm.warp(block.timestamp + 1 weeks);
 
-        uint256 post_post = LR.balanceOf(address(owner));
-        assertEq(post_post, post);
-        assertEq(post_post - pre, TOKEN_1 / 2);
+        // deliver bribe
+        uint256 pre = LR.balanceOf(address(owner));
+        vm.prank(address(voter));
+        xbribe.getRewardForOwner(1, rewards);
+        uint256 post = LR.balanceOf(address(owner));
+        assertEq(post - pre, TOKEN_1 / 2, "@e");
+
+        pre = LR.balanceOf(address(owner2));
+        vm.prank(address(voter));
+        xbribe.getRewardForOwner(2, rewards);
+        post = LR.balanceOf(address(owner2));
+        assertEq(post - pre, TOKEN_1 / 2, "@f");
+
     }
 
-    function testWrappedBribesCanClaimOnlyOnceArray() public {
+    function testCanClaimExternalBribeStaggered() public {
+
+
+        // fwd half a week
         vm.warp(block.timestamp + 1 weeks / 2);
 
         // create a bribe
-        LR.approve(address(wxbribe), TOKEN_1);
-        wxbribe.notifyRewardAmount(address(LR), TOKEN_1);
+        LR.approve(address(xbribe), TOKEN_1);
+        xbribe.notifyRewardAmount(address(LR), TOKEN_1);
+        assertEq(LR.balanceOf(address(xbribe)), TOKEN_1, "@g");
 
         // vote
         address[] memory pools = new address[](1);
@@ -172,32 +191,35 @@ contract WrappedExternalBribesTest is BaseTest {
         weights[0] = 10000;
         voter.vote(1, pools, weights);
 
+        // vote delayed
+        vm.warp(block.timestamp + 1 days);
         vm.startPrank(address(owner2));
         voter.vote(2, pools, weights);
         vm.stopPrank();
 
-        // fwd half a week
-        vm.warp(block.timestamp + 1 weeks / 2);
-
-        uint256 pre = LR.balanceOf(address(owner));
-        uint256 earned = wxbribe.earned(address(LR), 1);
-        assertEq(earned, TOKEN_1 / 2);
-
         // rewards
-        address[] memory rewards = new address[](2);
+        address[] memory rewards = new address[](1);
         rewards[0] = address(LR);
-        rewards[1] = address(LR);
 
-        vm.startPrank(address(voter));
-        // once
-        wxbribe.getRewardForOwner(1, rewards);
+        // fwd a full week as we changed the timestamp in BaseTest
+        vm.warp(block.timestamp + 1 weeks);
+
+        // deliver bribe
+        uint256 pre = LR.balanceOf(address(owner));
+        vm.prank(address(voter));
+        xbribe.getRewardForOwner(1, rewards);
         uint256 post = LR.balanceOf(address(owner));
-        // twice
-        wxbribe.getRewardForOwner(1, rewards);
-        vm.stopPrank();
+        assertGt(post - pre, TOKEN_1 / 2, "@h"); // 500172176312657261
+        uint256 diff = post - pre;
 
-        uint256 post_post = LR.balanceOf(address(owner));
-        assertEq(post_post, post);
-        assertEq(post_post - pre, TOKEN_1 / 2);
+        pre = LR.balanceOf(address(owner2));
+        vm.prank(address(voter));
+        xbribe.getRewardForOwner(2, rewards);
+        post = LR.balanceOf(address(owner2));
+        assertLt(post - pre, TOKEN_1 / 2, "@i"); // 499827823687342738
+        uint256 diff2 = post - pre;
+
+        assertEq(diff + diff2, TOKEN_1 - 1, "@j"); // -1 for rounding
+
     }
 }

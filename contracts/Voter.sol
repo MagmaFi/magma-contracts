@@ -83,7 +83,7 @@ contract Voter is IVoter {
     }
 
     function initialize(address[] memory _tokens, address _minter) external {
-        require(msg.sender == minter);
+        require(msg.sender == minter, "NOT_MINTER");
         for (uint i = 0; i < _tokens.length; i++) {
             _whitelist(_tokens[i]);
         }

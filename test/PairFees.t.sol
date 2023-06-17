@@ -20,7 +20,8 @@ contract PairFeesTest is BaseTest {
 
         assertEq(
             router.getAmountsOut(USDC_1, routes)[1],
-            pair.getAmountOut(USDC_1, address(USDC))
+            pair.getAmountOut(USDC_1, address(USDC)),
+            "--MARK-- 1"
         );
 
         uint256[] memory assertedOutput = router.getAmountsOut(USDC_1, routes);
@@ -35,7 +36,7 @@ contract PairFeesTest is BaseTest {
         vm.warp(block.timestamp + 1801);
         vm.roll(block.number + 1);
         address fees = pair.fees();
-        assertEq(USDC.balanceOf(fees), 200); // 0.01% -> 0.02%
+        assertEq(USDC.balanceOf(fees), 200,"--MARK-- USDC.balanceOf(fees)= 200"); // 0.01% -> 0.02%
         uint256 b = USDC.balanceOf(address(owner));
         pair.claimFees();
         assertGt(USDC.balanceOf(address(owner)), b);
@@ -48,7 +49,7 @@ contract PairFeesTest is BaseTest {
 
     function testFeeManagerCanSetNextManager() public {
         owner.setFeeManager(address(factory), address(owner2));
-        assertEq(factory.pendingFeeManager(), address(owner2));
+        assertEq(factory.pendingFeeManager(), address(owner2),"--MARK-- factory.pendingFeeManager()= address(owner2)");
     }
 
     function testNonPendingManagerCannotAcceptManager() public {
@@ -59,7 +60,7 @@ contract PairFeesTest is BaseTest {
     function testPendingManagerCanAcceptManager() public {
         owner.setFeeManager(address(factory), address(owner2));
         owner2.acceptFeeManager(address(factory));
-        assertEq(factory.feeManager(), address(owner2));
+        assertEq(factory.feeManager(), address(owner2),"--MARK-- factory.feeManager()= address(owner2)");
     }
 
     function testNonFeeManagerCannotChangeFees() public {
@@ -101,7 +102,7 @@ contract PairFeesTest is BaseTest {
         vm.warp(block.timestamp + 1801);
         vm.roll(block.number + 1);
         address fees = pair.fees();
-        assertEq(USDC.balanceOf(fees), 300);
+        assertEq(USDC.balanceOf(fees), 300,"--MARK-- USDC.balanceOf(fees)= 300");
         uint256 b = USDC.balanceOf(address(owner));
         pair.claimFees();
         assertGt(USDC.balanceOf(address(owner)), b);

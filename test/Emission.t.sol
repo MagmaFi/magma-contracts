@@ -30,6 +30,7 @@ import "utils/TestVoter.sol";
 import "utils/TestVotingEscrow.sol";
 import "utils/TestWETH.sol";
 import "contracts/oracles/UniswapV2Oracle.sol";
+
 contract Emission is Test {
     TestWETH WETH;
     MockERC20 DAI;
@@ -58,6 +59,8 @@ contract Emission is Test {
     address partner;
     address team;
     uint tokenId;
+    Pair lp;
+
     function setUp() public {
         treasure = makeAddr("treasure");
         partner = makeAddr("partner");
@@ -82,7 +85,7 @@ contract Emission is Test {
         oracle = new UniswapV2Oracle(tokenEth, address(WETH));
         oToken = new Option();
 
-        lp = Pair(factory.createPair(address(token), address(WETH), false));
+        lp = Pair(pairFactory.getPair(address(token), address(WETH), false));
         escrow = new VotingEscrow(tokenEth, address(oToken), address(artProxy));
         distributor = new RewardsDistributor(address(escrow));
         voter = new Voter(address(escrow), address(pairFactory), address(gaugeFactory), address(bribeFactory));
@@ -115,11 +118,11 @@ contract Emission is Test {
         token.mint(address(this), TOKEN_100);
         token.approve(address(router), TOKEN_100);
 
-        router.addLiquidityETH{value : TOKEN_100}(address(DAI), false, TOKEN_100, 0, 0, address(this), block.timestamp);
-        router.addLiquidityETH{value : TOKEN_100}(address(token), false, TOKEN_100, 0, 0, address(this), block.timestamp);
+        router.addLiquidityETH{value: TOKEN_100}(address(DAI), false, TOKEN_100, 0, 0, address(this), block.timestamp);
+        router.addLiquidityETH{value: TOKEN_100}(address(token), false, TOKEN_100, 0, 0, address(this), block.timestamp);
 
-        pool_eth_dai = Pair( pairFactory.getPair(address(WETH),address(DAI), false) );
-        pool_eth_token = Pair( pairFactory.getPair(address(WETH),address(token), false) );
+        pool_eth_dai = Pair(pairFactory.getPair(address(WETH), address(DAI), false));
+        pool_eth_token = Pair(pairFactory.getPair(address(WETH), address(token), false));
 
         address[] memory emptyAddresses = new address[](1);
         emptyAddresses[0] = partner;
@@ -128,12 +131,16 @@ contract Emission is Test {
         minter.initialize(emptyAddresses, emptyAmounts);
         minter.setTeam(team);
     }
+
     fallback() external payable {}
+
     receive() external payable {}
-    function getEpoch() public view returns(uint){
+
+    function getEpoch() public view returns (uint){
         InternalBribe bribe = InternalBribe(gauge_eth_token.internal_bribe());
         return bribe.getEpochStart(block.timestamp);
     }
+
     function testExec() public {
         vm.warp(block.timestamp + 86400 * 7);
         vm.roll(block.number + 1);
@@ -166,7 +173,8 @@ contract Emission is Test {
         distro(1);
         distro(2);
     }
-    function distro(uint index) public{
+
+    function distro(uint index) public {
 
         // do some swaps:
         uint256 amount = 1e18;
@@ -176,7 +184,7 @@ contract Emission is Test {
         Router.route[] memory path2 = new Router.route[](1);
         path2[0] = Router.route(address(token), address(WETH), false);
 
-        for(uint i = 0; i < 10; i++){
+        for (uint i = 0; i < 10; i++) {
             uint balanceBefore = token.balanceOf(address(this));
             router.swapExactETHForTokens{value: amount}(0, path1, address(this), block.timestamp);
             uint balanceAfter = token.balanceOf(address(this));
@@ -188,11 +196,11 @@ contract Emission is Test {
 
         //console2.log('---------------------- epoch:', getEpoch());
         //console2.log('option balance before distro:', oToken.balanceOf(address(this))/1e18);
-        vm.warp(block.timestamp + (86400 * 7)+ 1 );
+        vm.warp(block.timestamp + (86400 * 7) + 1);
         vm.roll(block.number + 1);
         voter.distro();
 
-        if( index == 0 ) return;
+        if (index == 0) return;
 
         address[] memory tokens = new address[](1);
         tokens[0] = address(oToken);

@@ -30,24 +30,29 @@ contract WashTradeTest is BaseTest {
     function createLock() public {
         deployBaseCoins();
 
-        oToken.approve(address(escrow), TOKEN_1);
-        escrow.create_lock(TOKEN_1, 4 * 365 * 86400);
+        uint lpAmount = lpAdd(address(this), TOKEN_1, TOKEN_1);
+        lp.approve(address(escrow), lpAmount);
+
+        escrow.create_lock(lpAmount, 4 * 365 * 86400);
         vm.roll(block.number + 1); // fwd 1 block because escrow.balanceOfNFT() returns 0 in same block
-        assertGt(escrow.balanceOfNFT(1), 995063075414519385);
-        assertEq(oToken.balanceOf(address(escrow)), TOKEN_1);
+        assertGt(escrow.balanceOfNFT(1), 995063075414519385,"@1");
+        assertEq(lp.balanceOf(address(escrow)), lpAmount,"@2");
     }
 
     function votingEscrowMerge() public {
         createLock();
 
-        oToken.approve(address(escrow), TOKEN_1);
-        escrow.create_lock(TOKEN_1, 4 * 365 * 86400);
+        uint balanceBefore = lp.balanceOf(address(escrow));
+        uint lpAmount = lpAdd(address(this), TOKEN_1, TOKEN_1);
+        lp.approve(address(escrow), lpAmount);
+
+        escrow.create_lock(lpAmount, 4 * 365 * 86400);
         vm.roll(block.number + 1);
-        assertGt(escrow.balanceOfNFT(2), 995063075414519385);
-        assertEq(oToken.balanceOf(address(escrow)), 2 * TOKEN_1);
+        assertGt(escrow.balanceOfNFT(2), 995063075414519385,"@3");
+        assertEq(lp.balanceOf(address(escrow))-balanceBefore, lpAmount,"@4");
         escrow.merge(2, 1);
-        assertGt(escrow.balanceOfNFT(1), 1990039602248405587);
-        assertEq(escrow.balanceOfNFT(2), 0);
+        assertGt(escrow.balanceOfNFT(1), 1990039602248405587,"@5");
+        assertEq(escrow.balanceOfNFT(2), 0,"@5");
     }
 
     function confirmTokensForFraxUsdc() public {
@@ -56,8 +61,8 @@ contract WashTradeTest is BaseTest {
         deployPairWithOwner(address(owner));
 
         (address token0, address token1) = router.sortTokens(address(USDC), address(FRAX));
-        assertEq(pair.token0(), token0);
-        assertEq(pair.token1(), token1);
+        assertEq(pair.token0(), token0,"@6");
+        assertEq(pair.token1(), token1,"@7");
     }
 
     function mintAndBurnTokensForPairFraxUsdc() public {
@@ -66,7 +71,7 @@ contract WashTradeTest is BaseTest {
         USDC.transfer(address(pair), USDC_1);
         FRAX.transfer(address(pair), TOKEN_1);
         pair.mint(address(owner));
-        assertEq(pair.getAmountOut(USDC_1, address(USDC)), 945128557522723966);
+        assertEq(pair.getAmountOut(USDC_1, address(USDC)), 945128557522723966,"@9");
     }
 
     function routerAddLiquidity() public {
@@ -96,7 +101,7 @@ contract WashTradeTest is BaseTest {
         tokens[3] = address(oToken);
         voter.initialize(tokens, address(owner));
 
-        assertEq(voter.length(), 0);
+        assertEq(voter.length(), 0,"@9");
     }
 
     function deployPairFactoryGauge() public {
@@ -104,7 +109,7 @@ contract WashTradeTest is BaseTest {
 
         oToken.approve(address(gaugeFactory), 5 * TOKEN_100K);
         voter.createGauge(address(pair));
-        assertFalse(voter.gauges(address(pair)) == address(0));
+        assertFalse(voter.gauges(address(pair)) == address(0),"@10");
 
         address gaugeAddr3 = voter.gauges(address(pair));
         address bribeAddr3 = voter.internal_bribes(gaugeAddr3);
@@ -115,8 +120,8 @@ contract WashTradeTest is BaseTest {
         uint256 total = pair.balanceOf(address(owner));
         pair.approve(address(gauge3), total);
         gauge3.deposit(total, 0);
-        assertEq(gauge3.totalSupply(), total);
-        assertEq(gauge3.earned(address(escrow), address(owner)), 0);
+        assertEq(gauge3.totalSupply(), total,"@11");
+        assertEq(gauge3.earned(address(escrow), address(owner)), 0,"@12");
     }
 
     function routerPair3GetAmountsOutAndSwapExactTokensForTokens() public {
@@ -130,13 +135,13 @@ contract WashTradeTest is BaseTest {
 
         uint256 i;
         for (i = 0; i < 10; i++) {
-            assertEq(router.getAmountsOut(TOKEN_1M, routes)[1], pair.getAmountOut(TOKEN_1M, address(FRAX)));
+            assertEq(router.getAmountsOut(TOKEN_1M, routes)[1], pair.getAmountOut(TOKEN_1M, address(FRAX)),"@13");
 
             uint256[] memory expectedOutput = router.getAmountsOut(TOKEN_1M, routes);
             FRAX.approve(address(router), TOKEN_1M);
             router.swapExactTokensForTokens(TOKEN_1M, expectedOutput[1], routes, address(owner), block.timestamp);
 
-            assertEq(router.getAmountsOut(USDC_1M, routes2)[1], pair.getAmountOut(USDC_1M, address(USDC)));
+            assertEq(router.getAmountsOut(USDC_1M, routes2)[1], pair.getAmountOut(USDC_1M, address(USDC)),"@14");
 
             uint256[] memory expectedOutput2 = router.getAmountsOut(USDC_1M, routes2);
             USDC.approve(address(router), USDC_1M);
@@ -170,16 +175,15 @@ contract WashTradeTest is BaseTest {
         weights[0] = 5000;
         weights[1] = 5000;
         voter.vote(1, pairs, weights);
-        assertFalse(voter.totalWeight() == 0);
-        assertFalse(bribe3.balanceOf(1) == 0);
+        assertFalse(voter.totalWeight() == 0,"@15");
+        assertFalse(bribe3.balanceOf(1) == 0,"@16");
     }
     function balances(string memory title) public{
-        console2.log(title);
-        console2.log("- bribe3 USDC/FRAX earned:", bribe3.earned(address(USDC), 1)/1e6, bribe3.earned(address(FRAX), 1)/1e18 );
-        console2.log("- bribe3 USDC/FRAX balance:", USDC.balanceOf(address(bribe3))/1e6, FRAX.balanceOf(address(bribe3))/1e18);
-        console2.log("* USER USDC/FRAX earned:", bribe3.earned(address(USDC), 1)/1e6, bribe3.earned(address(FRAX), 1)/1e18 );
-        console2.log("* USER USDC/FRAX balace:", (USDC.balanceOf(address(this)) - initialBalanceUSDC)/1e6,
-        (FRAX.balanceOf(address(this)) - initialBalanceFRAX)/1e18 );
+        //console2.log(title);
+        //console2.log("- bribe3 USDC/FRAX earned:", bribe3.earned(address(USDC), 1)/1e6, bribe3.earned(address(FRAX), 1)/1e18 );
+        //console2.log("- bribe3 USDC/FRAX balance:", USDC.balanceOf(address(bribe3))/1e6, FRAX.balanceOf(address(bribe3))/1e18);
+        //console2.log("* USER USDC/FRAX earned:", bribe3.earned(address(USDC), 1)/1e6, bribe3.earned(address(FRAX), 1)/1e18 );
+        //console2.log("* USER USDC/FRAX balace:", (USDC.balanceOf(address(this)) - initialBalanceUSDC)/1e6,(FRAX.balanceOf(address(this)) - initialBalanceFRAX)/1e18 );
 
 
     }
