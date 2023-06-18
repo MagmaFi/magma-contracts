@@ -93,7 +93,7 @@ contract Emission is Test {
         governor = new TokenGovernor(escrow);
 
         // allow minter to mint options:
-        oToken.initialize(address(minter), ERC20(WETH), IToken(token), IOracle(oracle), treasure);
+        oToken.initialize(address(route), address(minter), ERC20(WETH), IToken(token), IOracle(oracle), treasure);
 
         // ---
         oToken.initialMint(address(this), tokenAmount);

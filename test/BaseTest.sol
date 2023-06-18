@@ -239,7 +239,7 @@ abstract contract BaseTest is Test, TestOwner {
         // prevent timestamp calculation problem in the oracle:
         vm.warp(365 days * 53);
         oToken = new Option();
-        oToken.initialize(address(this), ERC20(WETH), IToken(token), IOracle(oracle), address(owner));
+        oToken.initialize(address(route), address(this), ERC20(WETH), IToken(token), IOracle(oracle), address(owner));
     }
 
 
