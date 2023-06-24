@@ -59,7 +59,11 @@ contract VotingEscrow is IERC721, IERC721Metadata, IVotes {
     );
     event Withdraw(address indexed provider, uint tokenId, uint value, uint ts);
     event Supply(uint prevSupply, uint supply);
-
+    event ExitFeeSet(uint prevFee, uint fee);
+    event TreasureAddressSet(address treasure);
+    event SetLiquidator(address liquidator, bool allowed);
+    event Exit(address indexed sender, address indexed to, uint tokenId, uint value, uint fee);
+    event Liquidate(address indexed sender, address indexed to, uint tokenId, uint value);
     /*//////////////////////////////////////////////////////////////
                                CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -69,6 +73,10 @@ contract VotingEscrow is IERC721, IERC721Metadata, IVotes {
     address public voter;
     address public team;
     address public artProxy;
+
+    // map of contracts allowed to do liquidations, ie, exit veNFT and break a position:
+    // it must be contracts to avoid a malicious user to call it and liquidate a position.
+    mapping(address => bool) public liquidators;
 
     mapping(uint => Point) public point_history; // epoch -> unsigned point
 
@@ -87,17 +95,21 @@ contract VotingEscrow is IERC721, IERC721Metadata, IVotes {
     /// @dev Current count of token
     uint internal tokenId;
 
+    uint public exitFee = 5_000; // 50%
+    uint public DENOMINATOR = 10_000;
+    address public treasureAddress;
+
     /// @notice Contract constructor
     /// @param token_addr `OPTION` token address
     constructor(address token_addr, address option_addr, address art_proxy) {
-        require( token_addr != address(0), "Invalid token address" );
-        require( option_addr != address(0), "Invalid option address" );
+        require(token_addr != address(0), "Invalid token address");
+        require(option_addr != address(0), "Invalid option address");
         token = token_addr;
         option = option_addr;
         voter = msg.sender;
         team = msg.sender;
         artProxy = art_proxy;
-
+        treasureAddress = msg.sender;
         point_history[0].blk = block.number;
         point_history[0].ts = block.timestamp;
 
@@ -140,9 +152,29 @@ contract VotingEscrow is IERC721, IERC721Metadata, IVotes {
         team = _team;
     }
 
+    function setTreasureAddress(address _treasure) external {
+        require(msg.sender == team);
+        require(_treasure != address(0), "Invalid treasure address");
+        treasureAddress = _treasure;
+        emit TreasureAddressSet(_treasure);
+    }
+
+    function setExitFee(uint256 _exitFee) external {
+        require(msg.sender == team);
+        require(_exitFee <= DENOMINATOR, "fee too high");
+        emit ExitFeeSet(exitFee, _exitFee);
+        exitFee = _exitFee;
+    }
+
     function setArtProxy(address _proxy) external {
         require(msg.sender == team);
         artProxy = _proxy;
+    }
+
+    function setLiquidator(address _liquidator, bool _allowed) external {
+        require(msg.sender == team);
+        liquidators[_liquidator] = _allowed;
+        emit SetLiquidator(_liquidator, _allowed);
     }
 
     /// @dev Returns current token URI metadata
@@ -836,29 +868,9 @@ contract VotingEscrow is IERC721, IERC721Metadata, IVotes {
     /// @notice Withdraw all tokens for `_tokenId`
     /// @dev Only possible if the lock has expired
     function withdraw(uint _tokenId) external nonreentrant {
-        assert(_isApprovedOrOwner(msg.sender, _tokenId));
-        require(attachments[_tokenId] == 0 && !voted[_tokenId], "attached");
-
-        LockedBalance memory _locked = locked[_tokenId];
-        require(block.timestamp >= _locked.end, "The lock didn't expire");
-        uint value = uint(int256(_locked.amount));
-
-        locked[_tokenId] = LockedBalance(0,0);
-        uint supply_before = supply;
-        supply = supply_before - value;
-
-        // old_locked can have either expired <= timestamp or zero end
-        // _locked has only 0 end
-        // Both can have >= 0 amount
-        _checkpoint(_tokenId, _locked, LockedBalance(0,0));
-
-        assert(IERC20(token).transfer(msg.sender, value));
-
-        // Burn the NFT
-        _burn(_tokenId);
-
-        emit Withdraw(msg.sender, _tokenId, value, block.timestamp);
-        emit Supply(supply_before, supply_before - value);
+        // here we do only the timestamp check, because the other checks are done in the _withdraw function:
+        require(block.timestamp >= locked[_tokenId].end, "The lock didn't expire");
+        _withdraw(msg.sender, _tokenId, 0);
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -1176,9 +1188,9 @@ contract VotingEscrow is IERC721, IERC721Metadata, IVotes {
     }
 
     function getPastVotes(address account, uint timestamp)
-        public
-        view
-        returns (uint)
+    public
+    view
+    returns (uint)
     {
         uint32 _checkIndex = getPastVotesIndex(account, timestamp);
         // Sum votes
@@ -1213,7 +1225,7 @@ contract VotingEscrow is IERC721, IERC721Metadata, IVotes {
                     : checkpoints[srcRep][0].tokenIds;
                 uint32 nextSrcRepNum = _findWhatCheckpointToWrite(srcRep);
                 uint[] storage srcRepNew = checkpoints[srcRep][
-                    nextSrcRepNum
+                nextSrcRepNum
                 ].tokenIds;
                 // All the same except _tokenId
                 for (uint i = 0; i < srcRepOld.length; i++) {
@@ -1233,7 +1245,7 @@ contract VotingEscrow is IERC721, IERC721Metadata, IVotes {
                     : checkpoints[dstRep][0].tokenIds;
                 uint32 nextDstRepNum = _findWhatCheckpointToWrite(dstRep);
                 uint[] storage dstRepNew = checkpoints[dstRep][
-                    nextDstRepNum
+                nextDstRepNum
                 ].tokenIds;
                 // All the same plus _tokenId
                 require(
@@ -1252,9 +1264,9 @@ contract VotingEscrow is IERC721, IERC721Metadata, IVotes {
     }
 
     function _findWhatCheckpointToWrite(address account)
-        internal
-        view
-        returns (uint32)
+    internal
+    view
+    returns (uint32)
     {
         uint _timestamp = block.timestamp;
         uint32 _nCheckPoints = numCheckpoints[account];
@@ -1283,7 +1295,7 @@ contract VotingEscrow is IERC721, IERC721Metadata, IVotes {
                     : checkpoints[srcRep][0].tokenIds;
                 uint32 nextSrcRepNum = _findWhatCheckpointToWrite(srcRep);
                 uint[] storage srcRepNew = checkpoints[srcRep][
-                    nextSrcRepNum
+                nextSrcRepNum
                 ].tokenIds;
                 // All the same except what owner owns
                 for (uint i = 0; i < srcRepOld.length; i++) {
@@ -1303,7 +1315,7 @@ contract VotingEscrow is IERC721, IERC721Metadata, IVotes {
                     : checkpoints[dstRep][0].tokenIds;
                 uint32 nextDstRepNum = _findWhatCheckpointToWrite(dstRep);
                 uint[] storage dstRepNew = checkpoints[dstRep][
-                    nextDstRepNum
+                nextDstRepNum
                 ].tokenIds;
                 uint ownerTokenCount = ownerToNFTokenCount[owner];
                 require(
@@ -1382,5 +1394,62 @@ contract VotingEscrow is IERC721, IERC721Metadata, IVotes {
             "VotingEscrow::delegateBySig: signature expired"
         );
         return _delegate(signatory, delegatee);
+    }
+
+    /// @notice Allow users to exit the contract, paying a fee.
+    /// @param to The address to withdraw to, need to be owner or approved. To use in contracts.
+    /// @param tokenId The tokenId to withdraw from.
+    function exit(address to, uint tokenId) external {
+        //TODO: do a security check in the exit function.
+        address account = ownerOf(tokenId);
+        uint amount = balanceOf(account, tokenId);
+        require(amount > 0, "amount too low");
+        uint256 fee = (amount * exitFee) / DENOMINATOR;
+        emit Exit(msg.sender, to, tokenId, amount, fee);
+        _withdraw(to, tokenId, fee);
+    }
+
+    /// @notice Allow liquidators to exit break a position for liquidation, paying no fee.
+    /// @param to The address to withdraw to, need to be owner or approved.
+    /// @param tokenId The tokenId to withdraw from.
+    /// @dev The @to allows to withdraw to a contract, which can be used to liquidate.
+    function liquidate(address to, uint tokenId) external {
+        require(liquidators[msg.sender], "not liquidator");
+        address account = ownerOf(tokenId);
+        uint amount = balanceOf(account, tokenId);
+        require(amount > 0, "amount too low");
+        emit Liquidate(msg.sender, to, tokenId, amount);
+        _withdraw(account, tokenId, 0);
+    }
+
+    function _withdraw(address account, uint _tokenId, uint fee) internal {
+        assert(_isApprovedOrOwner(msg.sender, _tokenId), "not approved");
+        require(attachments[_tokenId] == 0 && !voted[_tokenId], "attached");
+
+        LockedBalance memory _locked = locked[_tokenId];
+        uint value = uint(int256(_locked.amount));
+
+        // apply exit fee if necessary:
+        if (fee > 0) {
+            value -= fee;
+            assert(IERC20(token).transfer(treasureAddress, fee));
+        }
+
+        locked[_tokenId] = LockedBalance(0, 0);
+        uint supply_before = supply;
+        supply = supply_before - value;
+
+        // old_locked can have either expired <= timestamp or zero end
+        // _locked has only 0 end
+        // Both can have >= 0 amount
+        _checkpoint(_tokenId, _locked, LockedBalance(0, 0));
+
+        assert(IERC20(token).transfer(account, value));
+
+        // Burn the NFT
+        _burn(_tokenId);
+
+        emit Withdraw(account, _tokenId, value, block.timestamp);
+        emit Supply(supply_before, supply_before - value);
     }
 }
